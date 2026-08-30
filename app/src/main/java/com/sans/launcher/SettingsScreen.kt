@@ -32,7 +32,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -43,6 +42,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @Composable
 fun SettingsScreen(
@@ -50,8 +50,8 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onRequestCalendarPermission: () -> Unit
 ) {
-    val uiState by viewModel.uiState.collectAsState()
-    val allApps by viewModel.allAppsFlow.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val allApps by viewModel.allAppsFlow.collectAsStateWithLifecycle()
     var filterQuery by remember { mutableStateOf("") }
 
     val filteredApps = remember(allApps, filterQuery) {
@@ -225,7 +225,7 @@ fun SettingsScreen(
 
             items(
                 items = filteredApps,
-                key = { it.packageName }
+                key = { it.uniqueKey }
             ) { app ->
                 Row(
                     modifier = Modifier
@@ -268,14 +268,14 @@ fun SettingsScreen(
                             icon = if (app.isFavorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
                             active = app.isFavorite,
                             contentDescription = "Toggle favorite",
-                            onClick = { viewModel.toggleFavorite(app.packageName) }
+                            onClick = { viewModel.toggleFavorite(app.uniqueKey) }
                         )
 
                         SettingIconButton(
                             icon = if (!app.isHidden) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                             active = !app.isHidden,
                             contentDescription = "Toggle visibility",
-                            onClick = { viewModel.toggleHidden(app.packageName) }
+                            onClick = { viewModel.toggleHidden(app.uniqueKey) }
                         )
                     }
                 }
@@ -288,7 +288,7 @@ fun SettingsScreen(
         RenameAppDialog(
             app = app,
             onDismiss = { viewModel.dismissRenameDialog() },
-            onSave = { newLabel -> viewModel.saveCustomLabel(app.packageName, newLabel) }
+            onSave = { newLabel -> viewModel.saveCustomLabel(app.uniqueKey, newLabel) }
         )
     }
 }

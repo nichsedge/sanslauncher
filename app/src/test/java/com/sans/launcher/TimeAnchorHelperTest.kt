@@ -31,4 +31,14 @@ class TimeAnchorHelperTest {
         assertEquals(99, state.dayProgressPercent)
         assertEquals("23:59", state.timeFormatted)
     }
+
+    @Test
+    fun testTwelveHourFormatting() {
+        val afternoon = LocalDateTime.of(2026, 8, 30, 14, 30, 0)
+        val state12 = TimeAnchorHelper.calculateTimeState(afternoon, is24Hour = false)
+        val state24 = TimeAnchorHelper.calculateTimeState(afternoon, is24Hour = true)
+
+        assertEquals("2:30 PM", state12.timeFormatted)
+        assertEquals("14:30", state24.timeFormatted)
+    }
 }

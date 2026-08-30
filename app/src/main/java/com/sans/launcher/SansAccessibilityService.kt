@@ -36,6 +36,11 @@ class SansAccessibilityService : AccessibilityService() {
             return service.performGlobalAction(GLOBAL_ACTION_LOCK_SCREEN)
         }
 
+        fun expandNotificationShade(): Boolean {
+            val service = instance ?: return false
+            return service.performGlobalAction(GLOBAL_ACTION_NOTIFICATIONS)
+        }
+
         fun openAccessibilitySettings(context: Context) {
             try {
                 val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {

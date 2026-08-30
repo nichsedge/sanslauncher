@@ -130,9 +130,6 @@ fun LauncherTheme(
         SideEffect {
             val window = (view.context as? Activity)?.window
             if (window != null) {
-                window.statusBarColor = android.graphics.Color.TRANSPARENT
-                window.navigationBarColor = android.graphics.Color.TRANSPARENT
-
                 val insetsController = WindowCompat.getInsetsController(window, view)
                 // When isDark is true, icons must be light (white), so isAppearanceLight = false
                 // When isDark is false, icons must be dark (black), so isAppearanceLight = true

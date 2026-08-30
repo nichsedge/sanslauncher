@@ -5,15 +5,21 @@ import android.content.ContentUris
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.database.ContentObserver
 import android.database.Cursor
-import android.net.Uri
+import android.os.Handler
+import android.os.Looper
 import android.provider.CalendarContract
+import android.text.format.DateFormat
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -30,7 +36,8 @@ data class CalendarEventModel(
 
 class CalendarRepository(private val context: Context) {
 
-    private val timeFormatter = DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault())
+    private val timeFormatter24 = DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault())
+    private val timeFormatter12 = DateTimeFormatter.ofPattern("h:mm a", Locale.getDefault())
 
     fun hasCalendarPermission(): Boolean {
         return ContextCompat.checkSelfPermission(
@@ -39,10 +46,40 @@ class CalendarRepository(private val context: Context) {
         ) == PackageManager.PERMISSION_GRANTED
     }
 
-    fun getNextUpcomingEventFlow(): Flow<CalendarEventModel?> = flow {
-        while (true) {
-            emit(getNextUpcomingEvent())
-            delay(60_000L) // Refresh every 60 seconds
+    fun getNextUpcomingEventFlow(): Flow<CalendarEventModel?> = callbackFlow {
+        fun queryAndEmit() {
+            trySend(getNextUpcomingEvent())
+        }
+
+        queryAndEmit()
+
+        val observer = object : ContentObserver(Handler(Looper.getMainLooper())) {
+            override fun onChange(selfChange: Boolean) {
+                queryAndEmit()
+            }
+        }
+
+        try {
+            context.contentResolver.registerContentObserver(
+                CalendarContract.Events.CONTENT_URI,
+                true,
+                observer
+            )
+        } catch (_: Exception) { }
+
+        // Periodic ticker to ensure relative time strings (e.g. "in 5m") update every minute
+        val tickerJob = launch(Dispatchers.IO) {
+            while (isActive) {
+                delay(60_000L)
+                queryAndEmit()
+            }
+        }
+
+        awaitClose {
+            try {
+                context.contentResolver.unregisterContentObserver(observer)
+            } catch (_: Exception) { }
+            tickerJob.cancel()
         }
     }.flowOn(Dispatchers.IO)
 
@@ -79,16 +116,11 @@ class CalendarRepository(private val context: Context) {
                 val end = cursor.getLong(2)
                 val isAllDay = cursor.getInt(3) == 1
 
+                val is24 = DateFormat.is24HourFormat(context)
+                val formatter = if (is24) timeFormatter24 else timeFormatter12
                 val startLdt = LocalDateTime.ofInstant(Instant.ofEpochMilli(begin), ZoneId.systemDefault())
-                val timeFormatted = if (isAllDay) "All Day" else startLdt.format(timeFormatter)
-
-                val minutesUntil = ((begin - now) / 60_000L).coerceAtLeast(0)
-                val relative = when {
-                    isAllDay -> "Today"
-                    minutesUntil <= 1 -> "now"
-                    minutesUntil < 60 -> "in ${minutesUntil}m"
-                    else -> "in ${minutesUntil / 60}h ${minutesUntil % 60}m"
-                }
+                val timeFormatted = if (isAllDay) "All Day" else startLdt.format(formatter)
+                val relative = formatRelativeTime(begin, now, isAllDay)
 
                 CalendarEventModel(
                     title = title,
@@ -124,6 +156,18 @@ class CalendarRepository(private val context: Context) {
                 }
                 context.startActivity(intent)
             } catch (_: Exception) { }
+        }
+    }
+
+    companion object {
+        fun formatRelativeTime(begin: Long, now: Long, isAllDay: Boolean): String {
+            if (isAllDay) return "Today"
+            val minutesUntil = ((begin - now) / 60_000L).coerceAtLeast(0)
+            return when {
+                minutesUntil <= 1 -> "now"
+                minutesUntil < 60 -> "in ${minutesUntil}m"
+                else -> "in ${minutesUntil / 60}h ${minutesUntil % 60}m"
+            }
         }
     }
 }

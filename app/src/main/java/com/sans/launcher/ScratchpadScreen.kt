@@ -1,5 +1,8 @@
 package com.sans.launcher
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -27,9 +30,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
@@ -38,8 +39,6 @@ fun ScratchpadScreen(
     text: String,
     onTextChange: (String) -> Unit
 ) {
-    @Suppress("DEPRECATION")
-    val clipboardManager = LocalClipboardManager.current
     val context = LocalContext.current
     var localText by remember(text) { mutableStateOf(text) }
 
@@ -88,7 +87,9 @@ fun ScratchpadScreen(
                 IconButton(
                     onClick = {
                         if (localText.isNotBlank()) {
-                            clipboardManager.setText(AnnotatedString(localText))
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+                            val clip = ClipData.newPlainText("Brain Dump", localText)
+                            clipboard?.setPrimaryClip(clip)
                             Toast.makeText(context, "Copied to clipboard", Toast.LENGTH_SHORT).show()
                         }
                     }

@@ -16,6 +16,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
@@ -45,13 +46,13 @@ class MainActivity : ComponentActivity() {
 
         val factory = viewModelFactory {
             initializer {
-                LauncherViewModel(appRepository, settingsRepository, calendarRepository)
+                LauncherViewModel(appRepository, settingsRepository, calendarRepository, applicationContext)
             }
         }
 
         setContent {
             launcherViewModel = viewModel(factory = factory)
-            val uiState by launcherViewModel.uiState.collectAsState()
+            val uiState by launcherViewModel.uiState.collectAsStateWithLifecycle()
 
             LauncherTheme(
                 themeMode = uiState.themeMode,

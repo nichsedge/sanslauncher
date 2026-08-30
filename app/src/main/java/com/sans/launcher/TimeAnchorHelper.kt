@@ -1,8 +1,14 @@
 package com.sans.launcher
 
-import kotlinx.coroutines.delay
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.text.format.DateFormat
+import androidx.core.content.ContextCompat
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.callbackFlow
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -16,17 +22,22 @@ data class TimeState(
 
 object TimeAnchorHelper {
 
-    private val timeFormatter = DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault())
+    private val timeFormatter24 = DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault())
+    private val timeFormatter12 = DateTimeFormatter.ofPattern("h:mm a", Locale.getDefault())
     private val dateFormatter = DateTimeFormatter.ofPattern("EEEE, MMM d", Locale.getDefault())
 
-    fun calculateTimeState(now: LocalDateTime = LocalDateTime.now()): TimeState {
+    fun calculateTimeState(
+        now: LocalDateTime = LocalDateTime.now(),
+        is24Hour: Boolean = true
+    ): TimeState {
         val totalSecondsInDay = 86400
         val currentSecondOfDay = now.hour * 3600 + now.minute * 60 + now.second
         val fraction = (currentSecondOfDay.toFloat() / totalSecondsInDay.toFloat()).coerceIn(0f, 1f)
         val percent = (fraction * 100).toInt().coerceIn(0, 100)
+        val formatter = if (is24Hour) timeFormatter24 else timeFormatter12
 
         return TimeState(
-            timeFormatted = now.format(timeFormatter),
+            timeFormatted = now.format(formatter),
             dateFormatted = now.format(dateFormatter),
             dayProgressPercent = percent,
             dayProgressFraction = fraction
@@ -34,15 +45,39 @@ object TimeAnchorHelper {
     }
 
     /**
-     * Emits current time state immediately and then ticks periodically every minute.
+     * Emits current time state immediately and updates on system time broadcasts.
      */
-    fun timeStateFlow(): Flow<TimeState> = flow {
-        while (true) {
-            val now = LocalDateTime.now()
-            emit(calculateTimeState(now))
-            // Sleep until the start of the next minute
-            val secondsUntilNextMinute = 60 - now.second
-            delay(secondsUntilNextMinute * 1000L)
+    fun timeStateFlow(context: Context): Flow<TimeState> = callbackFlow {
+        fun emitCurrent() {
+            val is24 = DateFormat.is24HourFormat(context)
+            trySend(calculateTimeState(LocalDateTime.now(), is24))
+        }
+
+        emitCurrent()
+
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(c: Context?, intent: Intent?) {
+                emitCurrent()
+            }
+        }
+
+        val filter = IntentFilter().apply {
+            addAction(Intent.ACTION_TIME_TICK)
+            addAction(Intent.ACTION_TIME_CHANGED)
+            addAction(Intent.ACTION_TIMEZONE_CHANGED)
+        }
+
+        ContextCompat.registerReceiver(
+            context,
+            receiver,
+            filter,
+            ContextCompat.RECEIVER_EXPORTED
+        )
+
+        awaitClose {
+            try {
+                context.unregisterReceiver(receiver)
+            } catch (_: Exception) { }
         }
     }
 }

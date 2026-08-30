@@ -11,6 +11,8 @@ import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
+import org.json.JSONObject
+
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
 class SettingsRepository(private val context: Context) {
@@ -165,15 +167,29 @@ class SettingsRepository(private val context: Context) {
         }
     }
 
-    private fun decodeLabels(raw: String): Map<String, String> {
+    internal fun decodeLabels(raw: String): Map<String, String> {
         if (raw.isBlank()) return emptyMap()
-        return raw.split(";;;").mapNotNull { entry ->
-            val parts = entry.split(":::", limit = 2)
-            if (parts.size == 2) parts[0] to parts[1] else null
-        }.toMap()
+        return try {
+            val json = JSONObject(raw)
+            val map = mutableMapOf<String, String>()
+            val keys = json.keys()
+            while (keys.hasNext()) {
+                val key = keys.next()
+                map[key] = json.getString(key)
+            }
+            map
+        } catch (_: Exception) {
+            // Fallback for legacy delimiter format
+            raw.split(";;;").mapNotNull { entry ->
+                val parts = entry.split(":::", limit = 2)
+                if (parts.size == 2) parts[0] to parts[1] else null
+            }.toMap()
+        }
     }
 
-    private fun encodeLabels(map: Map<String, String>): String {
-        return map.entries.joinToString(";;;") { "${it.key}:::${it.value}" }
+    internal fun encodeLabels(map: Map<String, String>): String {
+        val json = JSONObject()
+        map.forEach { (k, v) -> json.put(k, v) }
+        return json.toString()
     }
 }

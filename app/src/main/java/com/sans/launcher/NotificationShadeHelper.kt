@@ -1,13 +1,17 @@
 package com.sans.launcher
 
-import android.annotation.SuppressLint
 import android.content.Context
 
 object NotificationShadeHelper {
-    @SuppressLint("WrongConstant")
     fun expandNotificationShade(context: Context) {
+        if (SansAccessibilityService.isServiceRunning()) {
+            if (SansAccessibilityService.expandNotificationShade()) {
+                return
+            }
+        }
+
         try {
-            val statusBarService = context.getSystemService("statusbar")
+            val statusBarService = context.getSystemService(Context.STATUS_BAR_SERVICE)
             val statusBarManager = Class.forName("android.app.StatusBarManager")
             val expandMethod = statusBarManager.getMethod("expandNotificationsPanel")
             expandMethod.invoke(statusBarService)

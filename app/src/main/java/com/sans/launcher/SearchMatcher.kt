@@ -1,6 +1,8 @@
 package com.sans.launcher
 
 object SearchMatcher {
+    private val WORD_SPLIT_REGEX = Regex("[\\s\\-_]+")
+
     /**
      * Checks if [app] matches the given [query] and returns a non-negative match score
      * (lower score = higher relevance / better match), or null if no match.
@@ -19,7 +21,7 @@ object SearchMatcher {
         if (displayName.startsWith(q)) return 10 + (displayName.length - q.length)
 
         // 3. Word Prefix Match (e.g. "Studio" in "YouTube Studio" matches "stu") (Score: 30)
-        val displayWords = displayName.split(Regex("[\\s\\-_]+"))
+        val displayWords = displayName.split(WORD_SPLIT_REGEX)
         if (displayWords.any { it.startsWith(q) }) {
             return 30
         }

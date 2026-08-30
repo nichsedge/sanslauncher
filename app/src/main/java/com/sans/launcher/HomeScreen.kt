@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -48,7 +49,6 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -68,6 +68,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -76,7 +77,7 @@ fun HomeScreen(
     onOpenSettings: () -> Unit,
     onRequestCalendarPermission: () -> Unit
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val focusManager = LocalFocusManager.current
     val haptic = LocalHapticFeedback.current
     val context = LocalContext.current
@@ -162,7 +163,8 @@ fun HomeScreen(
                     val others = uiState.otherApps
 
                     // If searching for "settings", show direct launcher settings entry
-                    if (isSearching && "settings".contains(uiState.searchQuery.trim(), ignoreCase = true)) {
+                    val trimmedSearch = uiState.searchQuery.trim()
+                    if (isSearching && ("settings".startsWith(trimmedSearch, ignoreCase = true) || ("settings".contains(trimmedSearch, ignoreCase = true) && trimmedSearch.length >= 3))) {
                         item(key = "launcher_settings_search_item") {
                             Row(
                                 modifier = Modifier
@@ -174,7 +176,7 @@ fun HomeScreen(
                                             onOpenSettings()
                                         }
                                     )
-                                    .padding(vertical = 10.dp),
+                                    .padding(vertical = 12.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
@@ -195,13 +197,13 @@ fun HomeScreen(
                     if (!isSearching && favorites.isNotEmpty()) {
                         items(
                             items = favorites,
-                            key = { "fav_${it.packageName}" }
+                            key = { "fav_${it.uniqueKey}" }
                         ) { app ->
                             AppItem(
                                 app = app,
                                 onClick = {
                                     if (uiState.enableHaptics) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    viewModel.launchApp(app.packageName)
+                                    viewModel.launchApp(app)
                                 },
                                 onLongClick = {
                                     if (uiState.enableHaptics) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -225,13 +227,13 @@ fun HomeScreen(
 
                     items(
                         items = others,
-                        key = { "other_${it.packageName}" }
+                        key = { "other_${it.uniqueKey}" }
                     ) { app ->
                         AppItem(
                             app = app,
                             onClick = {
                                 if (uiState.enableHaptics) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                viewModel.launchApp(app.packageName)
+                                viewModel.launchApp(app)
                             },
                             onLongClick = {
                                 if (uiState.enableHaptics) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -274,7 +276,7 @@ fun HomeScreen(
                             val firstApp = uiState.otherApps.firstOrNull() ?: uiState.favoriteApps.firstOrNull()
                             if (firstApp != null) {
                                 if (uiState.enableHaptics) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                viewModel.launchApp(firstApp.packageName)
+                                viewModel.launchApp(firstApp)
                                 focusManager.clearFocus()
                             }
                         }
@@ -309,7 +311,7 @@ fun HomeScreen(
             onToggleFavorite = { viewModel.toggleFavorite(app.packageName) },
             onToggleHidden = { viewModel.toggleHidden(app.packageName) },
             onStartRename = { viewModel.startRenamingApp(app) },
-            onOpenAppInfo = { viewModel.openAppInfo(app.packageName) },
+            onOpenAppInfo = { viewModel.openAppInfo(app) },
             onUninstall = { viewModel.uninstallApp(app.packageName) }
         )
     }
@@ -453,11 +455,13 @@ private fun AppItem(
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .defaultMinSize(minHeight = 48.dp)
             .combinedClickable(
                 onClick = onClick,
                 onLongClick = onLongClick
             )
-            .padding(vertical = 10.dp)
+            .padding(vertical = 12.dp),
+        contentAlignment = Alignment.CenterStart
     ) {
         Text(
             text = app.displayName,

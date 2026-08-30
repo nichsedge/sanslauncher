@@ -1,5 +1,6 @@
 package com.sans.launcher
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -65,5 +66,23 @@ class SearchMatcherTest {
 
         assertNotNull(SearchMatcher.matchScore(telegram, "tele"))
         assertNull(SearchMatcher.matchScore(intellect, "tele"))
+    }
+
+    @Test
+    fun emptyQueryReturnsZero() {
+        val score = SearchMatcher.matchScore(youtube, "")
+        assertEquals(0, score)
+
+        val whitespaceScore = SearchMatcher.matchScore(youtube, "   ")
+        assertEquals(0, whitespaceScore)
+    }
+
+    @Test
+    fun hyphenatedAndUnderscoreWordsMatchPrefixes() {
+        val googleDrive = AppModel(packageName = "com.google.android.apps.docs", label = "Google-Drive")
+        val myFiles = AppModel(packageName = "com.sec.android.app.myfiles", label = "My_Files")
+
+        assertNotNull(SearchMatcher.matchScore(googleDrive, "drive"))
+        assertNotNull(SearchMatcher.matchScore(myFiles, "files"))
     }
 }
