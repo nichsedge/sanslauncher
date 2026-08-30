@@ -1,0 +1,50 @@
+name: Build & Release Sans Launcher APK
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build & Publish Release APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'gradle'
+
+      - name: Grant Execute Permission for Gradlew
+        run: chmod +x gradlew
+
+      - name: Run Unit Tests
+        run: ./gradlew test
+
+      - name: Build Release APK
+        run: ./gradlew assembleRelease
+
+      - name: Rename APK for Release
+        run: |
+          mkdir -p output
+          cp app/build/outputs/apk/release/app-release.apk output/SansLauncher.apk
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: output/SansLauncher.apk
+          name: Sans Launcher ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true

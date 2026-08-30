@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Sans Launcher</string>
+    <string name="accessibility_service_description">Used exclusively to turn off screen when you double-tap on the home screen.</string>
 </resources>
