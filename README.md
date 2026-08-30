@@ -2,7 +2,7 @@
 
 > A distraction-free, high-performance Android launcher engineered to scaffold executive function, combat time blindness, and reduce compulsive phone use for ADHD minds.
 
-[![Release](https://img.shields.io/github/v/release/yourusername/sanslauncher?style=flat-square)](https://github.com/yourusername/sanslauncher/releases)
+[![Release](https://img.shields.io/github/v/release/nichsedge/sanslauncher?style=flat-square)](https://github.com/nichsedge/sanslauncher/releases)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
 [![Android](https://img.shields.io/badge/Android-13%2B-green.svg?style=flat-square)](https://developer.android.com)
 
