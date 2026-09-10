@@ -4,12 +4,6 @@ import android.content.Context
 
 object NotificationShadeHelper {
     fun expandNotificationShade(context: Context) {
-        if (SansAccessibilityService.isServiceRunning()) {
-            if (SansAccessibilityService.expandNotificationShade()) {
-                return
-            }
-        }
-
         try {
             val statusBarService = context.getSystemService(Context.STATUS_BAR_SERVICE)
             val statusBarManager = Class.forName("android.app.StatusBarManager")

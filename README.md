@@ -11,21 +11,21 @@
 ## ✨ Features
 
 ### 🧠 ADHD & Time Scaffolding
-- **Instant Brain Dump (Swipe Left)**: Swipe left anywhere on the home screen to open a raw text scratchpad with instant todo-checkbox support. Auto-saves locally on every stroke.
 - **"Next Up Only" Calendar Anchor**: Minimalist single-event preview under the clock (e.g. `14:00 • Team Sync in 20m`) to prevent cognitive overload while stopping time blindness.
 - **Ambient Time & Date Anchor**: Clean digital clock and date grounded at the top.
-- **Visual Day Progress Meter**: Real-time progress bar showing `% of today elapsed`.
 - **Tactile Haptic Feedback**: Crisp, subtle vibrational feedback on clicks and long presses.
 
 ### ⚡ Navigation & Gestures
 - **Swipe Down for Notifications**: Pull down anywhere on the home screen to expand Android's notification shade.
 - **Auto-Open Keyboard Option**: Automatically focus the search bar and pop up the keyboard when returning to the home screen.
-- **Long-Press Header for Settings**: Press and hold the Clock / Day progress header to access launcher preferences.
+- **Sans Finance Quick Expense Shortcut**: Integrated money icon in the search bar for immediate one-tap expense entry and search-query note passing to Sans Finance.
+- **Long-Press Header for Settings**: Press and hold the Clock header to access launcher preferences.
 
 ### 🔍 Smart Intent-Driven Search
 - **Instant Multi-Tier Search**: Exact match, prefix, acronym discovery (e.g. `yt` -> YouTube, `gc` -> Google Chrome), and fuzzy matching.
 - **Immediate Auto-Launch**: As soon as a query matches a single app, it launches immediately without waiting for full typing.
 - **Custom App Aliases**: Rename apps to conscious mnemonics (e.g. rename social media to *"Mindless Feed"*).
+- **Multi-Account & Work Profile Badging**: Unobtrusive work profile badging (briefcase indicator) and dual/cloned app support, allowing work and personal apps to be searched, pinned to favorites, or hidden independently.
 
 ### 🎨 Themes & Privacy
 - **AMOLED True Black, Minimal Dark, Clean Light, and System Default**.

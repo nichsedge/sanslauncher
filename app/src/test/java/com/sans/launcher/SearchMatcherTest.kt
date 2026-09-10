@@ -73,7 +73,9 @@ class SearchMatcherTest {
         val score = SearchMatcher.matchScore(youtube, "")
         assertEquals(0, score)
 
-        val whitespaceScore = SearchMatcher.matchScore(youtube, "   ")
+        // matchScore now expects pre-normalized (trimmed + lowercased) input,
+        // so whitespace-only queries should be trimmed by the caller before calling matchScore.
+        val whitespaceScore = SearchMatcher.matchScore(youtube, "   ".trim().lowercase())
         assertEquals(0, whitespaceScore)
     }
 
@@ -84,5 +86,19 @@ class SearchMatcherTest {
 
         assertNotNull(SearchMatcher.matchScore(googleDrive, "drive"))
         assertNotNull(SearchMatcher.matchScore(myFiles, "files"))
+    }
+
+    @Test
+    fun isSettingsQueryMatchesExpectedKeywords() {
+        assertTrue(SearchMatcher.isSettingsQuery("settings"))
+        assertTrue(SearchMatcher.isSettingsQuery("set"))
+        assertTrue(SearchMatcher.isSettingsQuery("pref"))
+        assertTrue(SearchMatcher.isSettingsQuery("preferences"))
+        assertTrue(SearchMatcher.isSettingsQuery("config"))
+        assertTrue(SearchMatcher.isSettingsQuery("launcher"))
+        assertTrue(SearchMatcher.isSettingsQuery("sans"))
+
+        org.junit.Assert.assertFalse(SearchMatcher.isSettingsQuery("s"))
+        org.junit.Assert.assertFalse(SearchMatcher.isSettingsQuery("calculator"))
     }
 }

@@ -7,8 +7,9 @@ import android.content.pm.LauncherActivityInfo
 import android.content.pm.LauncherApps
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Handler
-import android.os.Looper
+import android.os.HandlerThread
 import android.os.Process
 import android.os.UserHandle
 import android.os.UserManager
@@ -24,6 +25,26 @@ class AppRepository(private val context: Context) {
     private val launcherApps = context.getSystemService(Context.LAUNCHER_APPS_SERVICE) as? LauncherApps
     private val userManager = context.getSystemService(Context.USER_SERVICE) as? UserManager
 
+    private fun detectProfileType(profile: UserHandle): ProfileType {
+        val myUser = Process.myUserHandle()
+        if (profile == myUser) {
+            return ProfileType.PERSONAL
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+            try {
+                val userType = launcherApps?.getLauncherUserInfo(profile)?.userType
+                when (userType) {
+                    UserManager.USER_TYPE_PROFILE_MANAGED -> return ProfileType.WORK
+                    UserManager.USER_TYPE_PROFILE_CLONE -> return ProfileType.CLONE
+                    UserManager.USER_TYPE_PROFILE_PRIVATE -> return ProfileType.PRIVATE
+                }
+            } catch (_: Exception) { }
+        }
+
+        return ProfileType.WORK
+    }
+
     fun getInstalledApps(): Flow<List<AppModel>> = callbackFlow {
         fun queryApps(): List<AppModel> {
             val apps = mutableListOf<AppModel>()
@@ -31,6 +52,7 @@ class AppRepository(private val context: Context) {
 
             if (launcherApps != null) {
                 for (profile in profiles) {
+                    val profileType = detectProfileType(profile)
                     try {
                         val activityList: List<LauncherActivityInfo> = launcherApps.getActivityList(null, profile)
                         for (info in activityList) {
@@ -42,7 +64,8 @@ class AppRepository(private val context: Context) {
                                         packageName = pkg,
                                         label = label,
                                         userHandle = profile,
-                                        activityName = info.componentName.className
+                                        activityName = info.componentName.className,
+                                        profileType = profileType
                                     )
                                 )
                             }
@@ -105,13 +128,15 @@ class AppRepository(private val context: Context) {
             }
         }
 
-        val handler = Handler(Looper.getMainLooper())
-        launcherApps?.registerCallback(callback, handler)
+        val bgThread = HandlerThread("AppRepoCallback").apply { start() }
+        val bgHandler = Handler(bgThread.looper)
+        launcherApps?.registerCallback(callback, bgHandler)
 
         awaitClose {
             try {
                 launcherApps?.unregisterCallback(callback)
             } catch (_: Exception) { }
+            bgThread.quitSafely()
         }
     }.flowOn(Dispatchers.IO)
 
@@ -143,6 +168,44 @@ class AppRepository(private val context: Context) {
 
     fun launchApp(app: AppModel): Boolean {
         return launchApp(app.packageName, app.userHandle, app.activityName)
+    }
+
+    fun launchRecordExpense(note: String? = null): Boolean {
+        val trimmed = note?.trim()
+        val intent = if (!trimmed.isNullOrEmpty()) {
+            Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_TEXT, trimmed)
+                setPackage("com.sans.finance")
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+        } else {
+            Intent("com.sans.finance.action.ADD_TRANSACTION").apply {
+                setPackage("com.sans.finance")
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+        }
+
+        return try {
+            val pm = context.packageManager
+            val activities = pm.queryIntentActivities(intent, PackageManager.ResolveInfoFlags.of(0))
+            if (activities.isNotEmpty()) {
+                context.startActivity(intent)
+                true
+            } else {
+                val fallbackIntent = pm.getLaunchIntentForPackage("com.sans.finance")?.apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                if (fallbackIntent != null) {
+                    context.startActivity(fallbackIntent)
+                    true
+                } else {
+                    false
+                }
+            }
+        } catch (_: Exception) {
+            false
+        }
     }
 
     fun openAppInfo(packageName: String, userHandle: UserHandle? = null, activityName: String? = null) {

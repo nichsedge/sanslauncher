@@ -11,7 +11,6 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -28,8 +27,10 @@ class MainActivity : ComponentActivity() {
 
     private val requestCalendarPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { _ ->
-        // When permission is granted, ViewModel flow will automatically query calendar
+    ) { isGranted ->
+        if (isGranted && ::launcherViewModel.isInitialized) {
+            launcherViewModel.refreshCalendarEvents()
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -52,11 +53,12 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             launcherViewModel = viewModel(factory = factory)
-            val uiState by launcherViewModel.uiState.collectAsStateWithLifecycle()
+            val themeStatePair by launcherViewModel.themeState.collectAsStateWithLifecycle()
+            val (themeMode, fontStyle) = themeStatePair
 
             LauncherTheme(
-                themeMode = uiState.themeMode,
-                fontStyle = uiState.fontStyle
+                themeMode = themeMode,
+                fontStyle = fontStyle
             ) {
                 // Intercept back gesture everywhere to prevent OS exit swipe animations
                 BackHandler(enabled = true) {
@@ -64,17 +66,9 @@ class MainActivity : ComponentActivity() {
                         currentScreen != "home" -> {
                             currentScreen = "home"
                         }
-                        uiState.appToRename != null -> {
-                            launcherViewModel.dismissRenameDialog()
-                        }
-                        uiState.selectedAppForMenu != null -> {
-                            launcherViewModel.dismissAppMenu()
-                        }
-                        uiState.searchQuery.isNotEmpty() -> {
-                            launcherViewModel.updateSearchQuery("")
-                        }
                         else -> {
-                            // On clean home screen: do nothing and consume back event
+                            // Delegate to HomeScreen/SettingsScreen BackHandler for granular state cleanup.
+                            // On clean home screen: do nothing and consume back event.
                         }
                     }
                 }
@@ -102,6 +96,13 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (::launcherViewModel.isInitialized) {
+            launcherViewModel.refreshCalendarEvents()
+        }
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
@@ -110,6 +111,7 @@ class MainActivity : ComponentActivity() {
             launcherViewModel.updateSearchQuery("")
             launcherViewModel.dismissAppMenu()
             launcherViewModel.dismissRenameDialog()
+            launcherViewModel.refreshCalendarEvents()
         }
     }
 }

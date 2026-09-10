@@ -17,9 +17,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -55,13 +52,14 @@ fun SettingsScreen(
     var filterQuery by remember { mutableStateOf("") }
 
     val filteredApps = remember(allApps, filterQuery) {
-        if (filterQuery.isBlank()) {
-            allApps.sortedBy { it.displayName.lowercase() }
+        val trimmed = filterQuery.trim().lowercase()
+        if (trimmed.isEmpty()) {
+            allApps
         } else {
             allApps.filter {
-                it.displayName.contains(filterQuery, ignoreCase = true) ||
-                it.label.contains(filterQuery, ignoreCase = true)
-            }.sortedBy { it.displayName.lowercase() }
+                it.normalizedDisplayName.contains(trimmed) ||
+                it.label.contains(trimmed, ignoreCase = true)
+            }
         }
     }
 
@@ -102,15 +100,9 @@ fun SettingsScreen(
                 SectionHeader("ADHD & Time Scaffolding")
                 SettingToggleRow(
                     title = "Show Clock & Date",
-                    subtitle = "Ambient time anchor (long press header opens settings)",
+                    subtitle = "Ambient time anchor (long press top area opens settings)",
                     checked = uiState.showTimeAnchor,
                     onCheckedChange = { viewModel.setShowTimeAnchor(it) }
-                )
-                SettingToggleRow(
-                    title = "Visual Day Progress Bar",
-                    subtitle = "Real-time meter fighting ADHD time blindness",
-                    checked = uiState.showDayProgress,
-                    onCheckedChange = { viewModel.setShowDayProgress(it) }
                 )
                 SettingToggleRow(
                     title = "Next Calendar Event",
@@ -128,16 +120,16 @@ fun SettingsScreen(
                     onCheckedChange = { viewModel.setAutoOpenKeyboard(it) }
                 )
                 SettingToggleRow(
-                    title = "Double-Tap to Lock",
-                    subtitle = "Double tap empty home space to turn off screen",
-                    checked = uiState.doubleTapToLock,
-                    onCheckedChange = { viewModel.setDoubleTapToLock(it) }
-                )
-                SettingToggleRow(
                     title = "Tactile Haptics",
                     subtitle = "Crisp vibrational feedback on interactions",
                     checked = uiState.enableHaptics,
                     onCheckedChange = { viewModel.setEnableHaptics(it) }
+                )
+                SettingToggleRow(
+                    title = "Sans Finance Quick Expense",
+                    subtitle = "Show money icon in search bar to record expenses faster",
+                    checked = uiState.showExpenseShortcut,
+                    onCheckedChange = { viewModel.setShowExpenseShortcut(it) }
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f))
@@ -265,14 +257,14 @@ fun SettingsScreen(
                         )
 
                         SettingIconButton(
-                            icon = if (app.isFavorite) Icons.Filled.Star else Icons.Outlined.StarBorder,
+                            icon = if (app.isFavorite) Icons.Filled.Star else LauncherIcons.StarBorder,
                             active = app.isFavorite,
                             contentDescription = "Toggle favorite",
                             onClick = { viewModel.toggleFavorite(app.uniqueKey) }
                         )
 
                         SettingIconButton(
-                            icon = if (!app.isHidden) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                            icon = if (!app.isHidden) LauncherIcons.Visibility else LauncherIcons.VisibilityOff,
                             active = !app.isHidden,
                             contentDescription = "Toggle visibility",
                             onClick = { viewModel.toggleHidden(app.uniqueKey) }

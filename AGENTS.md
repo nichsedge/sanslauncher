@@ -15,6 +15,8 @@
 * **Strict Search Matching**: Prohibit loose scattered subsequence matching across letters. Use multi-tier scoring: exact match -> prefix -> word prefix -> acronym -> contiguous substring.
 * **Edge-to-Edge Bar Tinting**: Ensure status bar and navigation bar icon contrast is dynamically driven by the app's active color scheme (not just system dark mode) to avoid invisible status bars on custom AMOLED themes.
 * **Root Back Gesture Handling**: Absorb back gestures on the clean home view in `BackHandler` to prevent Android's predictive back window exit animations.
+* **Sans Finance Quick Action**: Quick expense recording via the search bar money icon dispatches `com.sans.finance.action.ADD_TRANSACTION` (or `Intent.ACTION_SEND` if query text is present) directly to Sans Finance.
+* **Multi-Account & Work Profile Badging**: Secondary profiles (managed work profiles, dual/cloned apps, private space) are key-mapped by user profile handle and badged with minimal inline indicators (e.g. briefcase icon for work profile), ensuring visual clarity and independent favorites/hidden/alias customization without colliding with primary profile apps.
 
 ## 🛠️ Build & Verification Commands
 

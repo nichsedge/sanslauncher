@@ -9,6 +9,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
@@ -140,7 +141,7 @@ fun LauncherTheme(
     }
 
     val fontFamily = if (fontStyle.lowercase() == "mono") FontFamily.Monospace else FontFamily.SansSerif
-    val typography = createLauncherTypography(fontFamily)
+    val typography = remember(fontFamily) { createLauncherTypography(fontFamily) }
 
     MaterialTheme(
         colorScheme = colorScheme,

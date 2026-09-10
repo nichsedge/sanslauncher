@@ -4,9 +4,6 @@
 -keepattributes *Annotation*, Signature, InnerClasses, EnclosingMethod
 -dontwarn java.lang.invoke.**
 
-# Keep Compose Runtime and Foundation essentials
--keep class androidx.compose.** { *; }
-
 # Keep DataStore Preferences
 -keepclassmembers class * extends androidx.datastore.preferences.core.Preferences { *; }
 
@@ -14,3 +11,5 @@
 -keep class com.sans.launcher.AppModel { *; }
 -keep class com.sans.launcher.TimeState { *; }
 -keep class com.sans.launcher.HomeUiState { *; }
+-keep class com.sans.launcher.CalendarEventModel { *; }
+-keep class com.sans.launcher.PartitionedApps { *; }

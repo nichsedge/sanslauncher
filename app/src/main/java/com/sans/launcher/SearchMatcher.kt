@@ -1,39 +1,50 @@
 package com.sans.launcher
 
 object SearchMatcher {
-    private val WORD_SPLIT_REGEX = Regex("[\\s\\-_]+")
-
     /**
-     * Checks if [app] matches the given [query] and returns a non-negative match score
-     * (lower score = higher relevance / better match), or null if no match.
+     * Checks if [app] matches the given pre-normalized [query] (trimmed + lowercased)
+     * and returns a non-negative match score (lower score = higher relevance / better match),
+     * or null if no match.
      */
     fun matchScore(app: AppModel, query: String): Int? {
-        val trimmed = query.trim()
-        if (trimmed.isEmpty()) return 0
+        if (query.isEmpty()) return 0
 
-        val displayName = app.displayName.lowercase()
-        val q = trimmed.lowercase()
+        val displayName = app.normalizedDisplayName
 
         // 1. Exact Match (Score: 0)
-        if (displayName == q) return 0
+        if (displayName == query) return 0
 
         // 2. Starts With Display Name (Score: 10 + length difference)
-        if (displayName.startsWith(q)) return 10 + (displayName.length - q.length)
+        if (displayName.startsWith(query)) return 10 + (displayName.length - query.length)
 
         // 3. Word Prefix Match (e.g. "Studio" in "YouTube Studio" matches "stu") (Score: 30)
-        val displayWords = displayName.split(WORD_SPLIT_REGEX)
-        if (displayWords.any { it.startsWith(q) }) {
+        if (app.words.any { it.startsWith(query) }) {
             return 30
         }
 
         // 4. Acronym / Initials Match (e.g. "YouTube Studio" -> "ys" or "yt") (Score: 50)
-        val displayAcronym = displayWords.mapNotNull { it.firstOrNull() }.joinToString("")
-        if (displayAcronym.startsWith(q)) return 50
+        if (app.acronym.startsWith(query)) {
+            return 50
+        }
 
         // 5. Contains Substring (Score: 70)
-        val subIndex = displayName.indexOf(q)
+        val subIndex = displayName.indexOf(query)
         if (subIndex >= 0) return 70 + subIndex
 
         return null
+    }
+
+    private val SETTINGS_KEYWORDS = listOf("settings", "preferences", "preference", "pref", "config", "launcher", "sans")
+
+    /**
+     * Returns true if [query] matches launcher preferences/settings keywords
+     * (e.g. "settings", "preferences", "pref", "config", "launcher", "sans").
+     */
+    fun isSettingsQuery(query: String): Boolean {
+        val trimmed = query.trim().lowercase()
+        if (trimmed.length < 2) return false
+        return SETTINGS_KEYWORDS.any { keyword ->
+            (keyword.startsWith(trimmed)) || (trimmed.length >= 3 && keyword.contains(trimmed))
+        }
     }
 }

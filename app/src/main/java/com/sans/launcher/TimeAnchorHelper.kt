@@ -9,15 +9,16 @@ import androidx.core.content.ContextCompat
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import androidx.compose.runtime.Immutable
 
+@Immutable
 data class TimeState(
     val timeFormatted: String,
-    val dateFormatted: String,
-    val dayProgressPercent: Int,
-    val dayProgressFraction: Float
+    val dateFormatted: String
 )
 
 object TimeAnchorHelper {
@@ -30,17 +31,11 @@ object TimeAnchorHelper {
         now: LocalDateTime = LocalDateTime.now(),
         is24Hour: Boolean = true
     ): TimeState {
-        val totalSecondsInDay = 86400
-        val currentSecondOfDay = now.hour * 3600 + now.minute * 60 + now.second
-        val fraction = (currentSecondOfDay.toFloat() / totalSecondsInDay.toFloat()).coerceIn(0f, 1f)
-        val percent = (fraction * 100).toInt().coerceIn(0, 100)
         val formatter = if (is24Hour) timeFormatter24 else timeFormatter12
 
         return TimeState(
             timeFormatted = now.format(formatter),
-            dateFormatted = now.format(dateFormatter),
-            dayProgressPercent = percent,
-            dayProgressFraction = fraction
+            dateFormatted = now.format(dateFormatter)
         )
     }
 
@@ -79,5 +74,5 @@ object TimeAnchorHelper {
                 context.unregisterReceiver(receiver)
             } catch (_: Exception) { }
         }
-    }
+    }.distinctUntilChanged()
 }

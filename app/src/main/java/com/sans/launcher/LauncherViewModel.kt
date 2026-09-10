@@ -4,18 +4,18 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+import androidx.compose.runtime.Immutable
+import kotlinx.coroutines.flow.map
+
+@Immutable
 data class HomeUiState(
     val searchQuery: String = "",
     val favoriteApps: List<AppModel> = emptyList(),
@@ -23,18 +23,23 @@ data class HomeUiState(
     val allApps: List<AppModel> = emptyList(),
     val selectedAppForMenu: AppModel? = null,
     val appToRename: AppModel? = null,
-    val timeState: TimeState = TimeAnchorHelper.calculateTimeState(),
     val nextEvent: CalendarEventModel? = null,
-    val scratchpadText: String = "",
     val showTimeAnchor: Boolean = true,
-    val showDayProgress: Boolean = true,
     val showNextEvent: Boolean = true,
     val autoOpenKeyboard: Boolean = false,
-    val doubleTapToLock: Boolean = true,
+    val showExpenseShortcut: Boolean = true,
     val themeMode: String = "amoled",
     val fontStyle: String = "sans",
     val enableHaptics: Boolean = true,
     val isLoading: Boolean = true
+)
+
+@Immutable
+data class PartitionedApps(
+    val allApps: List<AppModel> = emptyList(),
+    val favorites: List<AppModel> = emptyList(),
+    val others: List<AppModel> = emptyList(),
+    val visibleApps: List<AppModel> = emptyList()
 )
 
 @OptIn(FlowPreview::class)
@@ -42,65 +47,67 @@ class LauncherViewModel(
     private val appRepository: AppRepository,
     private val settingsRepository: SettingsRepository,
     private val calendarRepository: CalendarRepository,
-    private val context: Context
+    context: Context
 ) : ViewModel() {
 
     private val _searchQuery = MutableStateFlow("")
     private val _selectedAppForMenu = MutableStateFlow<AppModel?>(null)
     private val _appToRename = MutableStateFlow<AppModel?>(null)
-    private val _scratchpadInput = MutableSharedFlow<String>(
-        extraBufferCapacity = 1,
-        onBufferOverflow = BufferOverflow.DROP_OLDEST
-    )
 
-    init {
-        viewModelScope.launch {
-            _scratchpadInput
-                .debounce(400L)
-                .distinctUntilChanged()
-                .collect { text ->
-                    settingsRepository.saveScratchpadText(text)
-                }
-        }
-    }
+    val timeState: StateFlow<TimeState> = TimeAnchorHelper.timeStateFlow(context)
+        .stateIn(viewModelScope, SharingStarted.Lazily, TimeAnchorHelper.calculateTimeState())
 
-    val allAppsFlow: StateFlow<List<AppModel>> = combine(
+    val partitionedAppsFlow: StateFlow<PartitionedApps> = combine(
         appRepository.getInstalledApps(),
         settingsRepository.favorites,
         settingsRepository.hiddenApps,
         settingsRepository.customLabels
     ) { apps, favorites, hidden, labels ->
-        apps.map { app ->
+        val updatedApps = apps.map { app ->
             app.copy(
                 isFavorite = app.packageName in favorites || app.uniqueKey in favorites,
                 isHidden = app.packageName in hidden || app.uniqueKey in hidden,
                 customLabel = labels[app.uniqueKey] ?: labels[app.packageName]
             )
         }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+        val visible = updatedApps.filter { !it.isHidden }
+        val favs = visible.filter { it.isFavorite }.sortedBy { it.normalizedDisplayName }
+        val others = visible.filter { !it.isFavorite }.sortedBy { it.normalizedDisplayName }
+        PartitionedApps(
+            allApps = updatedApps,
+            favorites = favs,
+            others = others,
+            visibleApps = visible
+        )
+    }.stateIn(viewModelScope, SharingStarted.Lazily, PartitionedApps())
+
+    val allAppsFlow: StateFlow<List<AppModel>> = partitionedAppsFlow
+        .map { it.allApps }
+        .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+    /** Lightweight flow for theme/font only — used by MainActivity to avoid collecting full uiState. */
+    val themeState: StateFlow<Pair<String, String>> = combine(
+        settingsRepository.themeMode,
+        settingsRepository.fontStyle
+    ) { theme, font -> theme to font }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "amoled" to "sans")
 
     private val preferencesFlow: Flow<PreferencesBundle> = combine(
         settingsRepository.showTimeAnchor,
-        settingsRepository.showDayProgress,
         settingsRepository.themeMode,
         settingsRepository.fontStyle,
         settingsRepository.enableHaptics
-    ) { timeAnchor, dayProgress, theme, font, haptics ->
-        PreferencesBundle(timeAnchor, dayProgress, theme, font, haptics)
+    ) { timeAnchor, theme, font, haptics ->
+        PreferencesBundle(timeAnchor, theme, font, haptics)
     }
 
     private val extendedPrefsFlow = combine(
         settingsRepository.autoOpenKeyboard,
         settingsRepository.showNextEvent,
-        settingsRepository.doubleTapToLock,
-        settingsRepository.scratchpadText,
+        settingsRepository.showExpenseShortcut,
         calendarRepository.getNextUpcomingEventFlow()
-    ) { autoKeyboard, showNextEvent, doubleTapLock, scratchText, nextEvent ->
-        ExtendedPrefs(autoKeyboard, showNextEvent, doubleTapLock, scratchText, nextEvent)
-    }
-
-    private val appsAndSearchFlow = combine(allAppsFlow, _searchQuery) { apps, query ->
-        apps to query
+    ) { autoKeyboard, showNextEvent, showExpenseShortcut, nextEvent ->
+        ExtendedPrefs(autoKeyboard, showNextEvent, showExpenseShortcut, nextEvent)
     }
 
     private val dialogStatesFlow = combine(_selectedAppForMenu, _appToRename) { menu, rename ->
@@ -108,64 +115,60 @@ class LauncherViewModel(
     }
 
     val uiState: StateFlow<HomeUiState> = combine(
-        appsAndSearchFlow,
+        partitionedAppsFlow,
+        _searchQuery,
         dialogStatesFlow,
-        TimeAnchorHelper.timeStateFlow(context),
         combine(preferencesFlow, extendedPrefsFlow) { p, ep -> p to ep }
-    ) { (apps, query), (selectedMenuApp, renamingApp), timeState, (prefs, ext) ->
+    ) { partitioned, query, (selectedMenuApp, renamingApp), (prefs, ext) ->
         val nextEv = if (ext.showNextEvent) ext.nextEvent else null
+        val apps = partitioned.allApps
 
         if (apps.isEmpty()) {
             HomeUiState(
                 searchQuery = query,
                 selectedAppForMenu = selectedMenuApp,
                 appToRename = renamingApp,
-                timeState = timeState,
                 nextEvent = nextEv,
-                scratchpadText = ext.scratchpadText,
                 showTimeAnchor = prefs.showTimeAnchor,
-                showDayProgress = prefs.showDayProgress,
                 showNextEvent = ext.showNextEvent,
                 autoOpenKeyboard = ext.autoOpenKeyboard,
-                doubleTapToLock = ext.doubleTapLock,
+                showExpenseShortcut = ext.showExpenseShortcut,
                 themeMode = prefs.themeMode,
                 fontStyle = prefs.fontStyle,
                 enableHaptics = prefs.enableHaptics,
                 isLoading = true
             )
         } else if (query.isEmpty()) {
-            val favorites = apps.filter { it.isFavorite && !it.isHidden }
-                .sortedBy { it.displayName.lowercase() }
-            val others = apps.filter { !it.isFavorite && !it.isHidden }
-                .sortedBy { it.displayName.lowercase() }
-
             HomeUiState(
                 searchQuery = query,
-                favoriteApps = favorites,
-                otherApps = others,
+                favoriteApps = partitioned.favorites,
+                otherApps = partitioned.others,
                 allApps = apps,
                 selectedAppForMenu = selectedMenuApp,
                 appToRename = renamingApp,
-                timeState = timeState,
                 nextEvent = nextEv,
-                scratchpadText = ext.scratchpadText,
                 showTimeAnchor = prefs.showTimeAnchor,
-                showDayProgress = prefs.showDayProgress,
                 showNextEvent = ext.showNextEvent,
                 autoOpenKeyboard = ext.autoOpenKeyboard,
-                doubleTapToLock = ext.doubleTapLock,
+                showExpenseShortcut = ext.showExpenseShortcut,
                 themeMode = prefs.themeMode,
                 fontStyle = prefs.fontStyle,
                 enableHaptics = prefs.enableHaptics,
                 isLoading = false
             )
         } else {
-            val visibleApps = apps.filter { !it.isHidden }
-            val scored = visibleApps.mapNotNull { app ->
-                val score = SearchMatcher.matchScore(app, query)
+            // Pre-normalize query once for all apps (Fix #4)
+            val normalizedQuery = query.trim().lowercase()
+            val scored = partitioned.visibleApps.mapNotNull { app ->
+                val score = SearchMatcher.matchScore(app, normalizedQuery)
                 if (score != null) app to score else null
             }.sortedBy { it.second }
                 .map { it.first }
+
+            // Instant Auto-Launch: exactly 1 match → launch immediately (Fix #2: moved from updateSearchQuery)
+            if (scored.size == 1 && !SearchMatcher.isSettingsQuery(query.trim())) {
+                viewModelScope.launch { launchApp(scored.first()) }
+            }
 
             HomeUiState(
                 searchQuery = query,
@@ -174,49 +177,25 @@ class LauncherViewModel(
                 allApps = apps,
                 selectedAppForMenu = selectedMenuApp,
                 appToRename = renamingApp,
-                timeState = timeState,
                 nextEvent = nextEv,
-                scratchpadText = ext.scratchpadText,
                 showTimeAnchor = prefs.showTimeAnchor,
-                showDayProgress = prefs.showDayProgress,
                 showNextEvent = ext.showNextEvent,
                 autoOpenKeyboard = ext.autoOpenKeyboard,
-                doubleTapToLock = ext.doubleTapLock,
+                showExpenseShortcut = ext.showExpenseShortcut,
                 themeMode = prefs.themeMode,
                 fontStyle = prefs.fontStyle,
                 enableHaptics = prefs.enableHaptics,
                 isLoading = false
             )
         }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HomeUiState())
+    }.stateIn(viewModelScope, SharingStarted.Lazily, HomeUiState())
 
     fun updateSearchQuery(query: String) {
         _searchQuery.value = query
-
-        // Instant Auto-Launch: When typing reduces visible matching apps to exactly 1 candidate,
-        // immediately launch the app without side-effects in state derivation
-        val trimmedQuery = query.trim()
-        val isSettingsQuery = "settings".contains(trimmedQuery, ignoreCase = true) && trimmedQuery.length >= 3
-        if (trimmedQuery.isNotEmpty() && !isSettingsQuery) {
-            val visibleApps = allAppsFlow.value.filter { !it.isHidden }
-            val scored = visibleApps.mapNotNull { app ->
-                val score = SearchMatcher.matchScore(app, trimmedQuery)
-                if (score != null) app to score else null
-            }.sortedBy { it.second }.map { it.first }
-
-            if (scored.size == 1) {
-                launchApp(scored[0])
-            }
-        }
     }
 
     fun launchApp(app: AppModel) {
         appRepository.launchApp(app)
-        _searchQuery.value = ""
-    }
-
-    fun launchApp(packageName: String) {
-        appRepository.launchApp(packageName)
         _searchQuery.value = ""
     }
 
@@ -244,27 +223,22 @@ class LauncherViewModel(
         }
     }
 
-    fun toggleFavorite(packageName: String) {
+    fun toggleFavorite(appKey: String, legacyKey: String? = null) {
         viewModelScope.launch {
-            settingsRepository.toggleFavorite(packageName)
+            settingsRepository.toggleFavorite(appKey, legacyKey)
             _selectedAppForMenu.value = null
         }
     }
 
-    fun toggleHidden(packageName: String) {
+    fun toggleHidden(appKey: String, legacyKey: String? = null) {
         viewModelScope.launch {
-            settingsRepository.toggleHidden(packageName)
+            settingsRepository.toggleHidden(appKey, legacyKey)
             _selectedAppForMenu.value = null
         }
     }
 
     fun openAppInfo(app: AppModel) {
         appRepository.openAppInfo(app.packageName, app.userHandle, app.activityName)
-        _selectedAppForMenu.value = null
-    }
-
-    fun openAppInfo(packageName: String) {
-        appRepository.openAppInfo(packageName)
         _selectedAppForMenu.value = null
     }
 
@@ -275,10 +249,6 @@ class LauncherViewModel(
 
     fun setShowTimeAnchor(enabled: Boolean) {
         viewModelScope.launch { settingsRepository.setShowTimeAnchor(enabled) }
-    }
-
-    fun setShowDayProgress(enabled: Boolean) {
-        viewModelScope.launch { settingsRepository.setShowDayProgress(enabled) }
     }
 
     fun setThemeMode(mode: String) {
@@ -301,31 +271,25 @@ class LauncherViewModel(
         viewModelScope.launch { settingsRepository.setShowNextEvent(enabled) }
     }
 
-    fun saveScratchpadText(text: String) {
-        _scratchpadInput.tryEmit(text)
+    fun setShowExpenseShortcut(enabled: Boolean) {
+        viewModelScope.launch { settingsRepository.setShowExpenseShortcut(enabled) }
     }
 
-    fun flushScratchpadText(text: String) {
-        viewModelScope.launch {
-            settingsRepository.saveScratchpadText(text)
-        }
+    fun recordExpense(query: String? = null) {
+        appRepository.launchRecordExpense(query)
+        _searchQuery.value = ""
     }
 
-    fun openCalendarApp() {
-        calendarRepository.openCalendarApp()
+    fun refreshCalendarEvents() {
+        calendarRepository.refresh()
     }
 
-    fun setDoubleTapToLock(enabled: Boolean) {
-        viewModelScope.launch { settingsRepository.setDoubleTapToLock(enabled) }
-    }
-
-    fun lockScreen(): Boolean {
-        return SansAccessibilityService.lockScreen()
+    fun openCalendarApp(startTimeMillis: Long? = null) {
+        calendarRepository.openCalendarApp(startTimeMillis)
     }
 
     private data class PreferencesBundle(
         val showTimeAnchor: Boolean,
-        val showDayProgress: Boolean,
         val themeMode: String,
         val fontStyle: String,
         val enableHaptics: Boolean
@@ -334,8 +298,8 @@ class LauncherViewModel(
     private data class ExtendedPrefs(
         val autoOpenKeyboard: Boolean,
         val showNextEvent: Boolean,
-        val doubleTapLock: Boolean,
-        val scratchpadText: String,
+        val showExpenseShortcut: Boolean,
         val nextEvent: CalendarEventModel?
     )
 }
+

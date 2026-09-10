@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 
 import org.json.JSONObject
@@ -21,63 +22,53 @@ class SettingsRepository(private val context: Context) {
     private val hiddenKey = stringSetPreferencesKey("hidden")
     private val customLabelsKey = stringPreferencesKey("custom_labels_v1")
     private val showTimeAnchorKey = booleanPreferencesKey("show_time_anchor")
-    private val showDayProgressKey = booleanPreferencesKey("show_day_progress")
     private val themeModeKey = stringPreferencesKey("theme_mode")
     private val fontStyleKey = stringPreferencesKey("font_style")
     private val enableHapticsKey = booleanPreferencesKey("enable_haptics")
     private val autoOpenKeyboardKey = booleanPreferencesKey("auto_open_keyboard")
     private val showNextEventKey = booleanPreferencesKey("show_next_event")
-    private val doubleTapToLockKey = booleanPreferencesKey("double_tap_to_lock")
-    private val scratchpadTextKey = stringPreferencesKey("scratchpad_text")
+    private val showExpenseShortcutKey = booleanPreferencesKey("show_expense_shortcut")
 
     val favorites: Flow<Set<String>> = context.dataStore.data.map { preferences ->
         preferences[favoritesKey] ?: emptySet()
-    }
+    }.distinctUntilChanged()
 
     val hiddenApps: Flow<Set<String>> = context.dataStore.data.map { preferences ->
         preferences[hiddenKey] ?: emptySet()
-    }
+    }.distinctUntilChanged()
 
     val customLabels: Flow<Map<String, String>> = context.dataStore.data.map { preferences ->
         val raw = preferences[customLabelsKey] ?: ""
         decodeLabels(raw)
-    }
+    }.distinctUntilChanged()
 
     val showTimeAnchor: Flow<Boolean> = context.dataStore.data.map { preferences ->
         preferences[showTimeAnchorKey] ?: true
-    }
-
-    val showDayProgress: Flow<Boolean> = context.dataStore.data.map { preferences ->
-        preferences[showDayProgressKey] ?: true
-    }
+    }.distinctUntilChanged()
 
     val themeMode: Flow<String> = context.dataStore.data.map { preferences ->
         preferences[themeModeKey] ?: "amoled"
-    }
+    }.distinctUntilChanged()
 
     val fontStyle: Flow<String> = context.dataStore.data.map { preferences ->
         preferences[fontStyleKey] ?: "sans"
-    }
+    }.distinctUntilChanged()
 
     val enableHaptics: Flow<Boolean> = context.dataStore.data.map { preferences ->
         preferences[enableHapticsKey] ?: true
-    }
+    }.distinctUntilChanged()
 
     val autoOpenKeyboard: Flow<Boolean> = context.dataStore.data.map { preferences ->
         preferences[autoOpenKeyboardKey] ?: false
-    }
+    }.distinctUntilChanged()
 
     val showNextEvent: Flow<Boolean> = context.dataStore.data.map { preferences ->
         preferences[showNextEventKey] ?: true
-    }
+    }.distinctUntilChanged()
 
-    val doubleTapToLock: Flow<Boolean> = context.dataStore.data.map { preferences ->
-        preferences[doubleTapToLockKey] ?: true
-    }
-
-    val scratchpadText: Flow<String> = context.dataStore.data.map { preferences ->
-        preferences[scratchpadTextKey] ?: ""
-    }
+    val showExpenseShortcut: Flow<Boolean> = context.dataStore.data.map { preferences ->
+        preferences[showExpenseShortcutKey] ?: true
+    }.distinctUntilChanged()
 
     suspend fun setCustomLabel(packageName: String, customLabel: String?) {
         context.dataStore.edit { preferences ->
@@ -91,24 +82,26 @@ class SettingsRepository(private val context: Context) {
         }
     }
 
-    suspend fun toggleFavorite(packageName: String) {
+    suspend fun toggleFavorite(key: String, legacyKey: String? = null) {
         context.dataStore.edit { preferences ->
             val current = preferences[favoritesKey] ?: emptySet()
-            if (packageName in current) {
-                preferences[favoritesKey] = current - packageName
+            val isFav = key in current || (legacyKey != null && legacyKey in current)
+            if (isFav) {
+                preferences[favoritesKey] = (current - key) - (legacyKey ?: "")
             } else {
-                preferences[favoritesKey] = current + packageName
+                preferences[favoritesKey] = current + key
             }
         }
     }
 
-    suspend fun toggleHidden(packageName: String) {
+    suspend fun toggleHidden(key: String, legacyKey: String? = null) {
         context.dataStore.edit { preferences ->
             val current = preferences[hiddenKey] ?: emptySet()
-            if (packageName in current) {
-                preferences[hiddenKey] = current - packageName
+            val isHidden = key in current || (legacyKey != null && legacyKey in current)
+            if (isHidden) {
+                preferences[hiddenKey] = (current - key) - (legacyKey ?: "")
             } else {
-                preferences[hiddenKey] = current + packageName
+                preferences[hiddenKey] = current + key
             }
         }
     }
@@ -116,12 +109,6 @@ class SettingsRepository(private val context: Context) {
     suspend fun setShowTimeAnchor(enabled: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[showTimeAnchorKey] = enabled
-        }
-    }
-
-    suspend fun setShowDayProgress(enabled: Boolean) {
-        context.dataStore.edit { preferences ->
-            preferences[showDayProgressKey] = enabled
         }
     }
 
@@ -155,15 +142,9 @@ class SettingsRepository(private val context: Context) {
         }
     }
 
-    suspend fun setDoubleTapToLock(enabled: Boolean) {
+    suspend fun setShowExpenseShortcut(enabled: Boolean) {
         context.dataStore.edit { preferences ->
-            preferences[doubleTapToLockKey] = enabled
-        }
-    }
-
-    suspend fun saveScratchpadText(text: String) {
-        context.dataStore.edit { preferences ->
-            preferences[scratchpadTextKey] = text
+            preferences[showExpenseShortcutKey] = enabled
         }
     }
 
