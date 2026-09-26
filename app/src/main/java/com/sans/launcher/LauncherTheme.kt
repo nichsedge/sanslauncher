@@ -19,7 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 
-private val AmoledColorScheme = darkColorScheme(
+private val DarkColorScheme = darkColorScheme(
     primary = Color.White,
     secondary = Color(0xFFAAAAAA),
     background = Color.Black,
@@ -28,17 +28,6 @@ private val AmoledColorScheme = darkColorScheme(
     onSecondary = Color.Black,
     onBackground = Color.White,
     onSurface = Color.White,
-)
-
-private val SoftDarkColorScheme = darkColorScheme(
-    primary = Color(0xFFF0F0F0),
-    secondary = Color(0xFF9E9E9E),
-    background = Color(0xFF141414),
-    surface = Color(0xFF1E1E1E),
-    onPrimary = Color.Black,
-    onSecondary = Color.Black,
-    onBackground = Color(0xFFEDEDED),
-    onSurface = Color(0xFFEDEDED),
 )
 
 private val LightColorScheme = lightColorScheme(
@@ -108,23 +97,18 @@ fun createLauncherTypography(fontFamily: FontFamily): Typography {
 
 @Composable
 fun LauncherTheme(
-    themeMode: String = "amoled",
+    themeMode: String = "dark",
     fontStyle: String = "sans",
     content: @Composable () -> Unit
 ) {
     val systemDark = isSystemInDarkTheme()
     val isDark = when (themeMode.lowercase()) {
-        "amoled", "dark" -> true
         "light" -> false
+        "dark", "amoled" -> true
         else -> systemDark
     }
 
-    val colorScheme = when (themeMode.lowercase()) {
-        "amoled" -> AmoledColorScheme
-        "dark" -> SoftDarkColorScheme
-        "light" -> LightColorScheme
-        else -> if (systemDark) AmoledColorScheme else LightColorScheme
-    }
+    val colorScheme = if (isDark) DarkColorScheme else LightColorScheme
 
     val view = LocalView.current
     if (!view.isInEditMode) {

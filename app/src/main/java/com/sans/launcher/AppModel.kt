@@ -27,11 +27,11 @@ data class AppModel(
 
     val displayName: String = customLabel?.takeIf { it.isNotBlank() } ?: label
 
-    val normalizedDisplayName: String by lazy { displayName.lowercase() }
+    val normalizedDisplayName: String = displayName.lowercase()
 
-    val words: List<String> by lazy { displayName.split(WORD_SPLIT_REGEX).map { it.lowercase() } }
+    val words: List<String> = computeWords(normalizedDisplayName)
 
-    val acronym: String by lazy { words.mapNotNull { it.firstOrNull() }.joinToString("") }
+    val acronym: String = computeAcronym(words)
 
     val uniqueKey: String = if (userHandle != null && userHandle.hashCode() != 0) {
         "${packageName}_${userHandle.hashCode()}"
@@ -40,6 +40,33 @@ data class AppModel(
     }
 
     companion object {
-        private val WORD_SPLIT_REGEX = Regex("[\\s\\-_]+")
+        fun computeWords(normalizedDisplayName: String): List<String> {
+            val list = mutableListOf<String>()
+            val sb = StringBuilder()
+            for (ch in normalizedDisplayName) {
+                if (ch.isWhitespace() || ch == '-' || ch == '_') {
+                    if (sb.isNotEmpty()) {
+                        list.add(sb.toString())
+                        sb.setLength(0)
+                    }
+                } else {
+                    sb.append(ch)
+                }
+            }
+            if (sb.isNotEmpty()) {
+                list.add(sb.toString())
+            }
+            return list
+        }
+
+        fun computeAcronym(words: List<String>): String {
+            val sb = StringBuilder(words.size)
+            for (w in words) {
+                if (w.isNotEmpty()) {
+                    sb.append(w[0])
+                }
+            }
+            return sb.toString()
+        }
     }
 }

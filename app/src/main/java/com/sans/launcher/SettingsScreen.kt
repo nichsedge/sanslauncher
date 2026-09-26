@@ -41,6 +41,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+
 @Composable
 fun SettingsScreen(
     viewModel: LauncherViewModel,
@@ -49,7 +54,17 @@ fun SettingsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val allApps by viewModel.allAppsFlow.collectAsStateWithLifecycle()
+    val listState = rememberLazyListState()
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
     var filterQuery by remember { mutableStateOf("") }
+
+    LaunchedEffect(listState.isScrollInProgress) {
+        if (listState.isScrollInProgress) {
+            focusManager.clearFocus()
+            keyboardController?.hide()
+        }
+    }
 
     val filteredApps = remember(allApps, filterQuery) {
         val trimmed = filterQuery.trim().lowercase()
@@ -91,6 +106,7 @@ fun SettingsScreen(
         Spacer(modifier = Modifier.height(10.dp))
 
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
@@ -151,8 +167,7 @@ fun SettingsScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    ThemeChip("AMOLED", uiState.themeMode == "amoled") { viewModel.setThemeMode("amoled") }
-                    ThemeChip("Dark", uiState.themeMode == "dark") { viewModel.setThemeMode("dark") }
+                    ThemeChip("Dark", uiState.themeMode == "dark" || uiState.themeMode == "amoled") { viewModel.setThemeMode("dark") }
                     ThemeChip("Light", uiState.themeMode == "light") { viewModel.setThemeMode("light") }
                     ThemeChip("System", uiState.themeMode == "system") { viewModel.setThemeMode("system") }
                 }
@@ -221,6 +236,7 @@ fun SettingsScreen(
             ) { app ->
                 Row(
                     modifier = Modifier
+                        .animateItem()
                         .fillMaxWidth()
                         .padding(vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically

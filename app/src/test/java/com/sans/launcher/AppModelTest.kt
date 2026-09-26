@@ -100,4 +100,22 @@ class AppModelTest {
         // Original label does not match due to custom alias exclusivity invariant
         org.junit.Assert.assertNull(SearchMatcher.matchScore(workSlack, "slack"))
     }
+
+    @Test
+    fun computeWordsHandlesMixedDelimitersAndMultipleSpaces() {
+        val words = AppModel.computeWords("hello--world   foo_bar__baz")
+        assertEquals(listOf("hello", "world", "foo", "bar", "baz"), words)
+    }
+
+    @Test
+    fun computeAcronymHandlesEmptyAndMultiWordInputs() {
+        val acronym1 = AppModel.computeAcronym(listOf("google", "chrome"))
+        assertEquals("gc", acronym1)
+
+        val acronym2 = AppModel.computeAcronym(emptyList())
+        assertEquals("", acronym2)
+
+        val acronym3 = AppModel.computeAcronym(listOf("single"))
+        assertEquals("s", acronym3)
+    }
 }

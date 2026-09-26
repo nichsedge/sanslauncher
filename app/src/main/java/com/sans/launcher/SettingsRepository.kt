@@ -47,7 +47,7 @@ class SettingsRepository(private val context: Context) {
     }.distinctUntilChanged()
 
     val themeMode: Flow<String> = context.dataStore.data.map { preferences ->
-        preferences[themeModeKey] ?: "amoled"
+        preferences[themeModeKey] ?: "dark"
     }.distinctUntilChanged()
 
     val fontStyle: Flow<String> = context.dataStore.data.map { preferences ->

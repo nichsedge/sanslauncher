@@ -28,7 +28,7 @@ data class HomeUiState(
     val showNextEvent: Boolean = true,
     val autoOpenKeyboard: Boolean = false,
     val showExpenseShortcut: Boolean = true,
-    val themeMode: String = "amoled",
+    val themeMode: String = "dark",
     val fontStyle: String = "sans",
     val enableHaptics: Boolean = true,
     val isLoading: Boolean = true
@@ -90,7 +90,7 @@ class LauncherViewModel(
         settingsRepository.themeMode,
         settingsRepository.fontStyle
     ) { theme, font -> theme to font }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "amoled" to "sans")
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "dark" to "sans")
 
     private val preferencesFlow: Flow<PreferencesBundle> = combine(
         settingsRepository.showTimeAnchor,
@@ -114,80 +114,76 @@ class LauncherViewModel(
         menu to rename
     }
 
+    data class SearchResult(
+        val query: String = "",
+        val favoriteApps: List<AppModel> = emptyList(),
+        val otherApps: List<AppModel> = emptyList()
+    )
+
+    private val searchResultFlow: StateFlow<SearchResult> = combine(
+        partitionedAppsFlow,
+        _searchQuery
+    ) { partitioned, query ->
+        if (query.isEmpty()) {
+            SearchResult(
+                query = "",
+                favoriteApps = partitioned.favorites,
+                otherApps = partitioned.others
+            )
+        } else {
+            val normalizedQuery = query.trim().lowercase()
+            val scored = ArrayList<Pair<AppModel, Int>>()
+            for (app in partitioned.visibleApps) {
+                val score = SearchMatcher.matchScore(app, normalizedQuery)
+                if (score != null) {
+                    scored.add(app to score)
+                }
+            }
+            scored.sortBy { it.second }
+            val matched = ArrayList<AppModel>(scored.size)
+            for (i in 0 until scored.size) {
+                matched.add(scored[i].first)
+            }
+
+            // Instant Auto-Launch: exactly 1 match → launch immediately
+            if (matched.size == 1 && !SearchMatcher.isSettingsQuery(query.trim())) {
+                viewModelScope.launch { launchApp(matched.first()) }
+            }
+
+            SearchResult(
+                query = query,
+                favoriteApps = emptyList(),
+                otherApps = matched
+            )
+        }
+    }.stateIn(viewModelScope, SharingStarted.Lazily, SearchResult())
+
     val uiState: StateFlow<HomeUiState> = combine(
         partitionedAppsFlow,
-        _searchQuery,
+        searchResultFlow,
         dialogStatesFlow,
         combine(preferencesFlow, extendedPrefsFlow) { p, ep -> p to ep }
-    ) { partitioned, query, (selectedMenuApp, renamingApp), (prefs, ext) ->
+    ) { partitioned, searchResult, (selectedMenuApp, renamingApp), (prefs, ext) ->
         val nextEv = if (ext.showNextEvent) ext.nextEvent else null
         val apps = partitioned.allApps
 
-        if (apps.isEmpty()) {
-            HomeUiState(
-                searchQuery = query,
-                selectedAppForMenu = selectedMenuApp,
-                appToRename = renamingApp,
-                nextEvent = nextEv,
-                showTimeAnchor = prefs.showTimeAnchor,
-                showNextEvent = ext.showNextEvent,
-                autoOpenKeyboard = ext.autoOpenKeyboard,
-                showExpenseShortcut = ext.showExpenseShortcut,
-                themeMode = prefs.themeMode,
-                fontStyle = prefs.fontStyle,
-                enableHaptics = prefs.enableHaptics,
-                isLoading = true
-            )
-        } else if (query.isEmpty()) {
-            HomeUiState(
-                searchQuery = query,
-                favoriteApps = partitioned.favorites,
-                otherApps = partitioned.others,
-                allApps = apps,
-                selectedAppForMenu = selectedMenuApp,
-                appToRename = renamingApp,
-                nextEvent = nextEv,
-                showTimeAnchor = prefs.showTimeAnchor,
-                showNextEvent = ext.showNextEvent,
-                autoOpenKeyboard = ext.autoOpenKeyboard,
-                showExpenseShortcut = ext.showExpenseShortcut,
-                themeMode = prefs.themeMode,
-                fontStyle = prefs.fontStyle,
-                enableHaptics = prefs.enableHaptics,
-                isLoading = false
-            )
-        } else {
-            // Pre-normalize query once for all apps (Fix #4)
-            val normalizedQuery = query.trim().lowercase()
-            val scored = partitioned.visibleApps.mapNotNull { app ->
-                val score = SearchMatcher.matchScore(app, normalizedQuery)
-                if (score != null) app to score else null
-            }.sortedBy { it.second }
-                .map { it.first }
-
-            // Instant Auto-Launch: exactly 1 match → launch immediately (Fix #2: moved from updateSearchQuery)
-            if (scored.size == 1 && !SearchMatcher.isSettingsQuery(query.trim())) {
-                viewModelScope.launch { launchApp(scored.first()) }
-            }
-
-            HomeUiState(
-                searchQuery = query,
-                favoriteApps = emptyList(),
-                otherApps = scored,
-                allApps = apps,
-                selectedAppForMenu = selectedMenuApp,
-                appToRename = renamingApp,
-                nextEvent = nextEv,
-                showTimeAnchor = prefs.showTimeAnchor,
-                showNextEvent = ext.showNextEvent,
-                autoOpenKeyboard = ext.autoOpenKeyboard,
-                showExpenseShortcut = ext.showExpenseShortcut,
-                themeMode = prefs.themeMode,
-                fontStyle = prefs.fontStyle,
-                enableHaptics = prefs.enableHaptics,
-                isLoading = false
-            )
-        }
+        HomeUiState(
+            searchQuery = searchResult.query,
+            favoriteApps = searchResult.favoriteApps,
+            otherApps = searchResult.otherApps,
+            allApps = apps,
+            selectedAppForMenu = selectedMenuApp,
+            appToRename = renamingApp,
+            nextEvent = nextEv,
+            showTimeAnchor = prefs.showTimeAnchor,
+            showNextEvent = ext.showNextEvent,
+            autoOpenKeyboard = ext.autoOpenKeyboard,
+            showExpenseShortcut = ext.showExpenseShortcut,
+            themeMode = prefs.themeMode,
+            fontStyle = prefs.fontStyle,
+            enableHaptics = prefs.enableHaptics,
+            isLoading = apps.isEmpty()
+        )
     }.stateIn(viewModelScope, SharingStarted.Lazily, HomeUiState())
 
     fun updateSearchQuery(query: String) {

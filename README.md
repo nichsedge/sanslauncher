@@ -28,9 +28,10 @@
 - **Multi-Account & Work Profile Badging**: Unobtrusive work profile badging (briefcase indicator) and dual/cloned app support, allowing work and personal apps to be searched, pinned to favorites, or hidden independently.
 
 ### 🎨 Themes & Privacy
-- **AMOLED True Black, Minimal Dark, Clean Light, and System Default**.
+- **Pure AMOLED True Black, Clean Light, and System Default**: Dark theme uses 100% pure black (`#000000`) for zero OLED power leakage.
 - **Font Styling**: Modern Sans-Serif vs Clean Monospace.
 - **100% Offline & Private**: Zero telemetry, zero analytics, zero ads.
+- **AOT Baseline Profiles**: Ahead-of-Time ART compilation profile included for instantaneous cold startup.
 
 ---
 

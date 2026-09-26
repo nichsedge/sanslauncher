@@ -81,7 +81,9 @@ fun HomeScreen(
     onRequestCalendarPermission: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
     val isSearchEmpty by rememberUpdatedState(uiState.searchQuery.isEmpty())
+    val canScrollBack by rememberUpdatedState(listState.canScrollBackward)
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val haptic = LocalHapticFeedback.current
@@ -111,6 +113,13 @@ fun HomeScreen(
         }
     }
 
+    LaunchedEffect(listState.isScrollInProgress) {
+        if (listState.isScrollInProgress) {
+            focusManager.clearFocus()
+            keyboardController?.hide()
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -125,7 +134,7 @@ fun HomeScreen(
 
                     if (up != null) {
                         val dragY = up.position.y - down.position.y
-                        val isDrag = dragY > dragThreshold && isSearchEmpty
+                        val isDrag = dragY > dragThreshold && isSearchEmpty && !canScrollBack
 
                         if (isDrag) {
                             NotificationShadeHelper.expandNotificationShade(context)
@@ -156,6 +165,7 @@ fun HomeScreen(
 
         // App List
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
@@ -169,6 +179,7 @@ fun HomeScreen(
                 item(key = "launcher_settings_search_item") {
                     Row(
                         modifier = Modifier
+                            .animateItem()
                             .fillMaxWidth()
                             .combinedClickable(
                                 onClick = {
@@ -198,11 +209,12 @@ fun HomeScreen(
             if (!isSearching && favorites.isNotEmpty()) {
                 items(
                     items = favorites,
-                    key = { "fav_${it.uniqueKey}" },
+                    key = { it.uniqueKey },
                     contentType = { "app_item" }
                 ) { app ->
                     AppItem(
                         app = app,
+                        modifier = Modifier.animateItem(),
                         onClick = {
                             if (enableHaptics) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             viewModel.launchApp(app)
@@ -229,11 +241,12 @@ fun HomeScreen(
 
             items(
                 items = others,
-                key = { "other_${it.uniqueKey}" },
+                key = { it.uniqueKey },
                 contentType = { "app_item" }
             ) { app ->
                 AppItem(
                     app = app,
+                    modifier = Modifier.animateItem(),
                     onClick = {
                         if (enableHaptics) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         viewModel.launchApp(app)
@@ -425,11 +438,12 @@ private fun AppItem(
     app: AppModel,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
+    modifier: Modifier = Modifier,
     alpha: Float = 1f,
     isBold: Boolean = false
 ) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .defaultMinSize(minHeight = 48.dp)
             .combinedClickable(
