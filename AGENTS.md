@@ -6,7 +6,7 @@
 * **Strict Zero Warnings & No `@Suppress`**: Never suppress compiler, deprecation, or lint warnings with `@Suppress("DEPRECATION")`, `@SuppressLint`, or similar annotations. Always resolve warnings by migrating directly to modern, non-deprecated platform APIs.
 * **Architecture**: Unidirectional Data Flow (UDF) with immutable UI state (`HomeUiState`). Business logic in Repositories (`AppRepository`, `SettingsRepository`, `CalendarRepository`).
 * **Testing**: Write unit tests for business logic, search algorithms, time calculations, and repositories with JUnit.
-* **Release Pipeline**: Production builds use R8 code shrinking and ProGuard minification via GitHub Actions (`.github/workflows/build-and-release.yml`).
+* **Release Pipeline**: Production builds use R8 code shrinking and ProGuard minification via manual Gradle assembly (`./gradlew assembleRelease`) and GitHub CLI (`gh release create`).
 
 ## 🎯 Android Launcher & Search Invariants
 
