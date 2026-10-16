@@ -118,4 +118,36 @@ class AppModelTest {
         val acronym3 = AppModel.computeAcronym(listOf("single"))
         assertEquals("s", acronym3)
     }
+
+    @Test
+    fun privateProfilePropertiesAreCorrect() {
+        val app = AppModel(
+            packageName = "com.vault.secret",
+            label = "Secret Vault",
+            profileType = ProfileType.PRIVATE
+        )
+        assertEquals(ProfileType.PRIVATE, app.profileType)
+        assertFalse(app.isWorkProfile)
+        assertFalse(app.isCloneProfile)
+        assertTrue(app.isPrivateProfile)
+    }
+
+    @Test
+    fun searchRankingOrderMatchesPrecedence() {
+        // Exact (0) < Prefix (10+) < WordPrefix (30) < Acronym (50) < Substring (70)
+        val app = AppModel(
+            packageName = "com.google.android.youtube",
+            label = "YouTube Studio"
+        )
+        val exactScore = SearchMatcher.matchScore(app, "youtube studio")!!
+        val prefixScore = SearchMatcher.matchScore(app, "you")!!
+        val wordPrefixScore = SearchMatcher.matchScore(app, "stu")!!
+        val acronymScore = SearchMatcher.matchScore(app, "ys")!!
+        val substringScore = SearchMatcher.matchScore(app, "tube")!!
+
+        assertTrue(exactScore < prefixScore)
+        assertTrue(prefixScore < wordPrefixScore)
+        assertTrue(wordPrefixScore < acronymScore)
+        assertTrue(acronymScore < substringScore)
+    }
 }

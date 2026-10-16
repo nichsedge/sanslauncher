@@ -209,24 +209,33 @@ class AppRepository(private val context: Context) {
     }
 
     fun openAppInfo(packageName: String, userHandle: UserHandle? = null, activityName: String? = null) {
-        try {
-            if (launcherApps != null && userHandle != null && activityName != null) {
+        if (launcherApps != null && userHandle != null && activityName != null) {
+            try {
                 val component = ComponentName(packageName, activityName)
                 launcherApps.startAppDetailsActivity(component, userHandle, null, null)
-            } else {
-                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                    data = Uri.parse("package:$packageName")
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                return
+            } catch (_: Exception) { }
+        }
+
+        try {
+            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                data = Uri.parse("package:$packageName")
+                if (userHandle != null) {
+                    putExtra(Intent.EXTRA_USER, userHandle)
                 }
-                context.startActivity(intent)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
+            context.startActivity(intent)
         } catch (_: Exception) { }
     }
 
-    fun uninstallApp(packageName: String) {
+    fun uninstallApp(packageName: String, userHandle: UserHandle? = null) {
         try {
             val intent = Intent(Intent.ACTION_DELETE).apply {
                 data = Uri.parse("package:$packageName")
+                if (userHandle != null) {
+                    putExtra(Intent.EXTRA_USER, userHandle)
+                }
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             context.startActivity(intent)

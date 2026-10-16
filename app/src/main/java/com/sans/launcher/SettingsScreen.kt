@@ -1,5 +1,6 @@
 package com.sans.launcher
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -58,6 +59,13 @@ fun SettingsScreen(
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
     var filterQuery by remember { mutableStateOf("") }
+
+    BackHandler(enabled = uiState.appToRename != null || filterQuery.isNotEmpty()) {
+        when {
+            uiState.appToRename != null -> viewModel.dismissRenameDialog()
+            filterQuery.isNotEmpty() -> filterQuery = ""
+        }
+    }
 
     LaunchedEffect(listState.isScrollInProgress) {
         if (listState.isScrollInProgress) {
@@ -268,21 +276,21 @@ fun SettingsScreen(
                         SettingIconButton(
                             icon = Icons.Default.Edit,
                             active = false,
-                            contentDescription = "Rename app",
+                            contentDescription = "Rename ${app.displayName}",
                             onClick = { viewModel.startRenamingApp(app) }
                         )
 
                         SettingIconButton(
                             icon = if (app.isFavorite) Icons.Filled.Star else LauncherIcons.StarBorder,
                             active = app.isFavorite,
-                            contentDescription = "Toggle favorite",
+                            contentDescription = if (app.isFavorite) "Remove ${app.displayName} from pinned favorites" else "Pin ${app.displayName} to favorites",
                             onClick = { viewModel.toggleFavorite(app.uniqueKey) }
                         )
 
                         SettingIconButton(
                             icon = if (!app.isHidden) LauncherIcons.Visibility else LauncherIcons.VisibilityOff,
                             active = !app.isHidden,
-                            contentDescription = "Toggle visibility",
+                            contentDescription = if (app.isHidden) "Unhide ${app.displayName}" else "Hide ${app.displayName}",
                             onClick = { viewModel.toggleHidden(app.uniqueKey) }
                         )
                     }

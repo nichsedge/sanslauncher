@@ -35,6 +35,12 @@
 
 ---
 
+## 📥 Installation
+
+Download the latest `SansLauncher.apk` directly from [GitHub Releases](https://github.com/nichsedge/sanslauncher/releases) and install it on your device (Android 13+ / API 33+).
+
+---
+
 ## 🚀 Building & Testing
 
 ```bash

@@ -66,7 +66,7 @@ object TimeAnchorHelper {
             context,
             receiver,
             filter,
-            ContextCompat.RECEIVER_EXPORTED
+            ContextCompat.RECEIVER_NOT_EXPORTED
         )
 
         awaitClose {

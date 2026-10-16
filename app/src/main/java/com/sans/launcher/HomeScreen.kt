@@ -67,6 +67,8 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.delay
@@ -96,12 +98,6 @@ fun HomeScreen(
             uiState.appToRename != null -> viewModel.dismissRenameDialog()
             uiState.selectedAppForMenu != null -> viewModel.dismissAppMenu()
             uiState.searchQuery.isNotEmpty() -> viewModel.updateSearchQuery("")
-        }
-    }
-
-    LaunchedEffect(Unit) {
-        if (uiState.showNextEvent) {
-            onRequestCalendarPermission()
         }
     }
 
@@ -181,12 +177,14 @@ fun HomeScreen(
                         modifier = Modifier
                             .animateItem()
                             .fillMaxWidth()
+                            .defaultMinSize(minHeight = 48.dp)
                             .combinedClickable(
                                 onClick = {
                                     if (enableHaptics) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     viewModel.updateSearchQuery("")
                                     onOpenSettings()
-                                }
+                                },
+                                onClickLabel = "Open launcher settings"
                             )
                             .padding(vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -337,7 +335,7 @@ fun HomeScreen(
             onToggleHidden = { viewModel.toggleHidden(app.uniqueKey, app.packageName) },
             onStartRename = { viewModel.startRenamingApp(app) },
             onOpenAppInfo = { viewModel.openAppInfo(app) },
-            onUninstall = { viewModel.uninstallApp(app.packageName) }
+            onUninstall = { viewModel.uninstallApp(app) }
         )
     }
 
@@ -375,7 +373,8 @@ private fun TimeAnchorHeader(
                     .fillMaxWidth()
                     .combinedClickable(
                         onClick = { /* Optional tap */ },
-                        onLongClick = onLongClick
+                        onLongClick = onLongClick,
+                        onLongClickLabel = "Open settings"
                     )
             ) {
                 Text(
@@ -425,8 +424,12 @@ private fun TimeAnchorHeader(
                     .height(48.dp)
                     .combinedClickable(
                         onClick = { },
-                        onLongClick = onLongClick
+                        onLongClick = onLongClick,
+                        onLongClickLabel = "Open settings"
                     )
+                    .semantics {
+                        contentDescription = "Launcher header"
+                    }
             )
         }
     }
@@ -448,7 +451,9 @@ private fun AppItem(
             .defaultMinSize(minHeight = 48.dp)
             .combinedClickable(
                 onClick = onClick,
-                onLongClick = onLongClick
+                onLongClick = onLongClick,
+                onClickLabel = "Launch ${app.displayName}",
+                onLongClickLabel = "Open options for ${app.displayName}"
             )
             .padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically

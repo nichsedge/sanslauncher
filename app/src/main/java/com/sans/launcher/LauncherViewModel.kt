@@ -238,8 +238,13 @@ class LauncherViewModel(
         _selectedAppForMenu.value = null
     }
 
-    fun uninstallApp(packageName: String) {
-        appRepository.uninstallApp(packageName)
+    fun uninstallApp(app: AppModel) {
+        appRepository.uninstallApp(app.packageName, app.userHandle)
+        _selectedAppForMenu.value = null
+    }
+
+    fun uninstallApp(packageName: String, userHandle: android.os.UserHandle? = null) {
+        appRepository.uninstallApp(packageName, userHandle)
         _selectedAppForMenu.value = null
     }
 
