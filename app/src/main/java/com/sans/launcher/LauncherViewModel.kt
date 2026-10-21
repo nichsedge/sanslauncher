@@ -287,6 +287,16 @@ class LauncherViewModel(
         CircleToSearchHelper.launch(context)
     }
 
+    fun requestAddQuickSettingsTile(context: Context) {
+        val statusBarManager = context.getSystemService(android.app.StatusBarManager::class.java)
+        statusBarManager?.requestAddTileService(
+            android.content.ComponentName(context, CircleToSearchTileService::class.java),
+            context.getString(R.string.circle_to_search_title),
+            android.graphics.drawable.Icon.createWithResource(context, R.drawable.ic_search),
+            context.mainExecutor
+        ) { _ -> }
+    }
+
     fun recordExpense(query: String? = null) {
         appRepository.launchRecordExpense(query)
         _searchQuery.value = ""

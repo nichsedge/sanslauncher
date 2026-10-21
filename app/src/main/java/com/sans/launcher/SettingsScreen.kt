@@ -58,6 +58,7 @@ fun SettingsScreen(
     val listState = rememberLazyListState()
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
+    val context = androidx.compose.ui.platform.LocalContext.current
     var filterQuery by remember { mutableStateOf("") }
 
     BackHandler(enabled = uiState.appToRename != null || filterQuery.isNotEmpty()) {
@@ -160,6 +161,11 @@ fun SettingsScreen(
                     subtitle = "Show search lens icon in search bar to freeze screen and select text",
                     checked = uiState.showCircleToSearchShortcut,
                     onCheckedChange = { viewModel.setShowCircleToSearchShortcut(it) }
+                )
+                SettingClickableRow(
+                    title = "Add Tile to Control Center",
+                    subtitle = "Pin Quick Settings tile to trigger screen text selection from any app",
+                    onClick = { viewModel.requestAddQuickSettingsTile(context) }
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f))
@@ -362,6 +368,34 @@ private fun SettingToggleRow(
                 uncheckedTrackColor = MaterialTheme.colorScheme.surface
             )
         )
+    }
+}
+
+@Composable
+private fun SettingClickableRow(
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.secondary
+            )
+        }
     }
 }
 
