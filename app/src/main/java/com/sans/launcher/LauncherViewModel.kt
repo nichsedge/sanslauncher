@@ -28,6 +28,7 @@ data class HomeUiState(
     val showNextEvent: Boolean = true,
     val autoOpenKeyboard: Boolean = false,
     val showExpenseShortcut: Boolean = true,
+    val showCircleToSearchShortcut: Boolean = true,
     val themeMode: String = "dark",
     val fontStyle: String = "sans",
     val enableHaptics: Boolean = true,
@@ -105,9 +106,10 @@ class LauncherViewModel(
         settingsRepository.autoOpenKeyboard,
         settingsRepository.showNextEvent,
         settingsRepository.showExpenseShortcut,
+        settingsRepository.showCircleToSearchShortcut,
         calendarRepository.getNextUpcomingEventFlow()
-    ) { autoKeyboard, showNextEvent, showExpenseShortcut, nextEvent ->
-        ExtendedPrefs(autoKeyboard, showNextEvent, showExpenseShortcut, nextEvent)
+    ) { autoKeyboard, showNextEvent, showExpenseShortcut, showCtsShortcut, nextEvent ->
+        ExtendedPrefs(autoKeyboard, showNextEvent, showExpenseShortcut, showCtsShortcut, nextEvent)
     }
 
     private val dialogStatesFlow = combine(_selectedAppForMenu, _appToRename) { menu, rename ->
@@ -179,6 +181,7 @@ class LauncherViewModel(
             showNextEvent = ext.showNextEvent,
             autoOpenKeyboard = ext.autoOpenKeyboard,
             showExpenseShortcut = ext.showExpenseShortcut,
+            showCircleToSearchShortcut = ext.showCircleToSearchShortcut,
             themeMode = prefs.themeMode,
             fontStyle = prefs.fontStyle,
             enableHaptics = prefs.enableHaptics,
@@ -276,6 +279,14 @@ class LauncherViewModel(
         viewModelScope.launch { settingsRepository.setShowExpenseShortcut(enabled) }
     }
 
+    fun setShowCircleToSearchShortcut(enabled: Boolean) {
+        viewModelScope.launch { settingsRepository.setShowCircleToSearchShortcut(enabled) }
+    }
+
+    fun triggerCircleToSearch(context: Context) {
+        CircleToSearchHelper.launch(context)
+    }
+
     fun recordExpense(query: String? = null) {
         appRepository.launchRecordExpense(query)
         _searchQuery.value = ""
@@ -300,6 +311,7 @@ class LauncherViewModel(
         val autoOpenKeyboard: Boolean,
         val showNextEvent: Boolean,
         val showExpenseShortcut: Boolean,
+        val showCircleToSearchShortcut: Boolean,
         val nextEvent: CalendarEventModel?
     )
 }

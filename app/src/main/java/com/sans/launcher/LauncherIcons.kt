@@ -28,4 +28,8 @@ object LauncherIcons {
     val Work: ImageVector
         @Composable
         get() = ImageVector.vectorResource(R.drawable.ic_work)
+
+    val Search: ImageVector
+        @Composable
+        get() = ImageVector.vectorResource(R.drawable.ic_search)
 }

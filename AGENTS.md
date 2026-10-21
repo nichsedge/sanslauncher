@@ -17,6 +17,7 @@
 * **Pure AMOLED Dark Palette**: The "Dark" theme uses true 100% black (`#000000`) for surface and background with no grayish overlays, ensuring zero power consumption on OLED/AMOLED pixels.
 * **AOT Baseline Profile**: Hot cold-start execution paths are mapped in `app/src/main/baseline-prof.txt` for Ahead-of-Time ART compilation upon APK installation.
 * **Root Back Gesture Handling**: Absorb back gestures on the clean home view in `BackHandler` to prevent Android's predictive back window exit animations.
+* **Circle to Search Contextual Search**: Implements direct binder invocation to `IVoiceInteractionManagerService` via `CircleToSearchHelper` with entry point `omni.entry_point=1`, exposed via `AssistActivity` (for digital assistant binding), `CircleToSearchTileService` (Quick Settings tile), and in-launcher search bar action to bypass OEM/HyperOS third-party launcher restrictions.
 * **Sans Finance Quick Action**: Quick expense recording via the search bar money icon dispatches `com.sans.finance.action.ADD_TRANSACTION` (or `Intent.ACTION_SEND` if query text is present) directly to Sans Finance.
 * **Multi-Account & Work Profile Badging**: Secondary profiles (managed work profiles, dual/cloned apps, private space) are key-mapped by user profile handle and badged with minimal inline indicators (e.g. briefcase icon for work profile), ensuring visual clarity and independent favorites/hidden/alias customization without colliding with primary profile apps.
 

@@ -155,6 +155,12 @@ fun SettingsScreen(
                     checked = uiState.showExpenseShortcut,
                     onCheckedChange = { viewModel.setShowExpenseShortcut(it) }
                 )
+                SettingToggleRow(
+                    title = "Circle to Search Shortcut",
+                    subtitle = "Show search lens icon in search bar to freeze screen and select text",
+                    checked = uiState.showCircleToSearchShortcut,
+                    onCheckedChange = { viewModel.setShowCircleToSearchShortcut(it) }
+                )
                 Spacer(modifier = Modifier.height(16.dp))
                 HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f))
                 Spacer(modifier = Modifier.height(16.dp))

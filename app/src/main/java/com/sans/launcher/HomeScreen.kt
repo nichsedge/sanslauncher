@@ -297,6 +297,21 @@ fun HomeScreen(
             ),
             trailingIcon = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (uiState.showCircleToSearchShortcut) {
+                        IconButton(
+                            onClick = {
+                                if (enableHaptics) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                viewModel.triggerCircleToSearch(context)
+                                focusManager.clearFocus()
+                            }
+                        ) {
+                            Icon(
+                                imageVector = LauncherIcons.Search,
+                                contentDescription = "Circle to Search",
+                                tint = MaterialTheme.colorScheme.secondary
+                            )
+                        }
+                    }
                     if (uiState.showExpenseShortcut) {
                         IconButton(
                             onClick = {

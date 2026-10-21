@@ -28,6 +28,7 @@ class SettingsRepository(private val context: Context) {
     private val autoOpenKeyboardKey = booleanPreferencesKey("auto_open_keyboard")
     private val showNextEventKey = booleanPreferencesKey("show_next_event")
     private val showExpenseShortcutKey = booleanPreferencesKey("show_expense_shortcut")
+    private val showCircleToSearchShortcutKey = booleanPreferencesKey("show_cts_shortcut")
 
     val favorites: Flow<Set<String>> = context.dataStore.data.map { preferences ->
         preferences[favoritesKey] ?: emptySet()
@@ -68,6 +69,10 @@ class SettingsRepository(private val context: Context) {
 
     val showExpenseShortcut: Flow<Boolean> = context.dataStore.data.map { preferences ->
         preferences[showExpenseShortcutKey] ?: true
+    }.distinctUntilChanged()
+
+    val showCircleToSearchShortcut: Flow<Boolean> = context.dataStore.data.map { preferences ->
+        preferences[showCircleToSearchShortcutKey] ?: true
     }.distinctUntilChanged()
 
     suspend fun setCustomLabel(packageName: String, customLabel: String?) {
@@ -145,6 +150,12 @@ class SettingsRepository(private val context: Context) {
     suspend fun setShowExpenseShortcut(enabled: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[showExpenseShortcutKey] = enabled
+        }
+    }
+
+    suspend fun setShowCircleToSearchShortcut(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[showCircleToSearchShortcutKey] = enabled
         }
     }
 

@@ -16,6 +16,7 @@
 - **Tactile Haptic Feedback**: Crisp, subtle vibrational feedback on clicks and long presses.
 
 ### ⚡ Navigation & Gestures
+- **Circle to Search & Google Lens Integration**: Directly triggers Google's contextual search (`IVoiceInteractionManagerService`) from the search bar shortcut, Quick Settings tile, or system digital assistant invocation (`AssistActivity`), bypassing HyperOS third-party launcher restrictions.
 - **Swipe Down for Notifications**: Pull down anywhere on the home screen to expand Android's notification shade.
 - **Auto-Open Keyboard Option**: Automatically focus the search bar and pop up the keyboard when returning to the home screen.
 - **Sans Finance Quick Expense Shortcut**: Integrated money icon in the search bar for immediate one-tap expense entry and search-query note passing to Sans Finance.
