@@ -120,9 +120,9 @@ fun SettingsScreen(
                 .weight(1f)
                 .fillMaxWidth()
         ) {
-            // --- SECTION 1: ADHD & TIME ANCHOR ---
+            // --- SECTION 1: TIME & ADHD SCAFFOLDING ---
             item {
-                SectionHeader("ADHD & Time Scaffolding")
+                SectionHeader("Time & ADHD Scaffolding")
                 SettingToggleRow(
                     title = "Show Clock & Date",
                     subtitle = "Ambient time anchor (long press top area opens settings)",
@@ -138,6 +138,40 @@ fun SettingsScreen(
                         if (it) onRequestCalendarPermission()
                     }
                 )
+                Spacer(modifier = Modifier.height(16.dp))
+                HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f))
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            // --- SECTION 2: SEARCH & QUICK ACTIONS ---
+            item {
+                SectionHeader("Search & Quick Actions")
+                SettingToggleRow(
+                    title = "Circle to Search Shortcut",
+                    subtitle = "Show search lens icon in search bar to freeze screen and select text",
+                    checked = uiState.showCircleToSearchShortcut,
+                    onCheckedChange = { viewModel.setShowCircleToSearchShortcut(it) }
+                )
+                SettingClickableRow(
+                    title = "Add Tile to Control Center",
+                    subtitle = "Pin Quick Settings tile to trigger screen text selection from any app",
+                    actionLabel = "Add",
+                    onClick = { viewModel.requestAddQuickSettingsTile(context) }
+                )
+                SettingToggleRow(
+                    title = "Sans Finance Quick Expense",
+                    subtitle = "Show money icon in search bar to record expenses faster",
+                    checked = uiState.showExpenseShortcut,
+                    onCheckedChange = { viewModel.setShowExpenseShortcut(it) }
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f))
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            // --- SECTION 3: INTERACTION & FEEDBACK ---
+            item {
+                SectionHeader("Interaction & Feedback")
                 SettingToggleRow(
                     title = "Auto-Open Keyboard",
                     subtitle = "Instantly pop up keyboard on home screen",
@@ -150,29 +184,12 @@ fun SettingsScreen(
                     checked = uiState.enableHaptics,
                     onCheckedChange = { viewModel.setEnableHaptics(it) }
                 )
-                SettingToggleRow(
-                    title = "Sans Finance Quick Expense",
-                    subtitle = "Show money icon in search bar to record expenses faster",
-                    checked = uiState.showExpenseShortcut,
-                    onCheckedChange = { viewModel.setShowExpenseShortcut(it) }
-                )
-                SettingToggleRow(
-                    title = "Circle to Search Shortcut",
-                    subtitle = "Show search lens icon in search bar to freeze screen and select text",
-                    checked = uiState.showCircleToSearchShortcut,
-                    onCheckedChange = { viewModel.setShowCircleToSearchShortcut(it) }
-                )
-                SettingClickableRow(
-                    title = "Add Tile to Control Center",
-                    subtitle = "Pin Quick Settings tile to trigger screen text selection from any app",
-                    onClick = { viewModel.requestAddQuickSettingsTile(context) }
-                )
                 Spacer(modifier = Modifier.height(16.dp))
                 HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f))
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // --- SECTION 2: THEME & TYPOGRAPHY ---
+            // --- SECTION 4: APPEARANCE & TYPOGRAPHY ---
             item {
                 SectionHeader("Appearance & Typography")
                 
@@ -375,6 +392,7 @@ private fun SettingToggleRow(
 private fun SettingClickableRow(
     title: String,
     subtitle: String,
+    actionLabel: String? = null,
     onClick: () -> Unit
 ) {
     Row(
@@ -394,6 +412,15 @@ private fun SettingClickableRow(
                 text = subtitle,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.secondary
+            )
+        }
+        if (actionLabel != null) {
+            Text(
+                text = actionLabel,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(start = 12.dp)
             )
         }
     }
