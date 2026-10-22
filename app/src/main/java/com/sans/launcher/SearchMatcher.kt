@@ -18,8 +18,11 @@ object SearchMatcher {
         if (displayName.startsWith(query)) return 10 + (displayName.length - query.length)
 
         // 3. Word Prefix Match (e.g. "Studio" in "YouTube Studio" matches "stu") (Score: 30)
-        if (app.words.any { it.startsWith(query) }) {
-            return 30
+        val words = app.words
+        for (i in 0 until words.size) {
+            if (words[i].startsWith(query)) {
+                return 30
+            }
         }
 
         // 4. Acronym / Initials Match (e.g. "YouTube Studio" -> "ys" or "yt") (Score: 50)
@@ -43,8 +46,12 @@ object SearchMatcher {
     fun isSettingsQuery(query: String): Boolean {
         val trimmed = query.trim().lowercase()
         if (trimmed.length < 2) return false
-        return SETTINGS_KEYWORDS.any { keyword ->
-            (keyword.startsWith(trimmed)) || (trimmed.length >= 3 && keyword.contains(trimmed))
+        for (i in 0 until SETTINGS_KEYWORDS.size) {
+            val keyword = SETTINGS_KEYWORDS[i]
+            if (keyword.startsWith(trimmed) || (trimmed.length >= 3 && keyword.contains(trimmed))) {
+                return true
+            }
         }
+        return false
     }
 }

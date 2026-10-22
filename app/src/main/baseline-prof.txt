@@ -10,6 +10,7 @@ Lcom/sans/launcher/LauncherViewModel;
 HSPLcom/sans/launcher/LauncherViewModel;-><init>(Lcom/sans/launcher/AppRepository;Lcom/sans/launcher/SettingsRepository;Lcom/sans/launcher/CalendarRepository;Landroid/content/Context;)V
 HSPLcom/sans/launcher/LauncherViewModel;->getUiState()Lkotlinx/coroutines/flow/StateFlow;
 HSPLcom/sans/launcher/LauncherViewModel;->getTimeState()Lkotlinx/coroutines/flow/StateFlow;
+HSPLcom/sans/launcher/LauncherViewModel;->getNextEventState()Lkotlinx/coroutines/flow/StateFlow;
 HSPLcom/sans/launcher/LauncherViewModel;->updateSearchQuery(Ljava/lang/String;)V
 HSPLcom/sans/launcher/LauncherViewModel;->launchApp(Lcom/sans/launcher/AppModel;)V
 

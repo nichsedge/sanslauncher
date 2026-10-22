@@ -58,6 +58,9 @@ class LauncherViewModel(
     val timeState: StateFlow<TimeState> = TimeAnchorHelper.timeStateFlow(context)
         .stateIn(viewModelScope, SharingStarted.Lazily, TimeAnchorHelper.calculateTimeState())
 
+    val nextEventState: StateFlow<CalendarEventModel?> = calendarRepository.getNextUpcomingEventFlow()
+        .stateIn(viewModelScope, SharingStarted.Lazily, null)
+
     val partitionedAppsFlow: StateFlow<PartitionedApps> = combine(
         appRepository.getInstalledApps(),
         settingsRepository.favorites,
@@ -106,10 +109,9 @@ class LauncherViewModel(
         settingsRepository.autoOpenKeyboard,
         settingsRepository.showNextEvent,
         settingsRepository.showExpenseShortcut,
-        settingsRepository.showCircleToSearchShortcut,
-        calendarRepository.getNextUpcomingEventFlow()
-    ) { autoKeyboard, showNextEvent, showExpenseShortcut, showCtsShortcut, nextEvent ->
-        ExtendedPrefs(autoKeyboard, showNextEvent, showExpenseShortcut, showCtsShortcut, nextEvent)
+        settingsRepository.showCircleToSearchShortcut
+    ) { autoKeyboard, showNextEvent, showExpenseShortcut, showCtsShortcut ->
+        ExtendedPrefs(autoKeyboard, showNextEvent, showExpenseShortcut, showCtsShortcut)
     }
 
     private val dialogStatesFlow = combine(_selectedAppForMenu, _appToRename) { menu, rename ->
@@ -121,6 +123,13 @@ class LauncherViewModel(
         val favoriteApps: List<AppModel> = emptyList(),
         val otherApps: List<AppModel> = emptyList()
     )
+
+    private class ScoredApp(
+        val app: AppModel,
+        val score: Int
+    ) : Comparable<ScoredApp> {
+        override fun compareTo(other: ScoredApp): Int = score.compareTo(other.score)
+    }
 
     private val searchResultFlow: StateFlow<SearchResult> = combine(
         partitionedAppsFlow,
@@ -134,17 +143,19 @@ class LauncherViewModel(
             )
         } else {
             val normalizedQuery = query.trim().lowercase()
-            val scored = ArrayList<Pair<AppModel, Int>>()
-            for (app in partitioned.visibleApps) {
+            val visibleApps = partitioned.visibleApps
+            val scored = ArrayList<ScoredApp>(visibleApps.size)
+            for (i in 0 until visibleApps.size) {
+                val app = visibleApps[i]
                 val score = SearchMatcher.matchScore(app, normalizedQuery)
                 if (score != null) {
-                    scored.add(app to score)
+                    scored.add(ScoredApp(app, score))
                 }
             }
-            scored.sortBy { it.second }
+            scored.sort()
             val matched = ArrayList<AppModel>(scored.size)
             for (i in 0 until scored.size) {
-                matched.add(scored[i].first)
+                matched.add(scored[i].app)
             }
 
             // Instant Auto-Launch: exactly 1 match → launch immediately
@@ -166,7 +177,6 @@ class LauncherViewModel(
         dialogStatesFlow,
         combine(preferencesFlow, extendedPrefsFlow) { p, ep -> p to ep }
     ) { partitioned, searchResult, (selectedMenuApp, renamingApp), (prefs, ext) ->
-        val nextEv = if (ext.showNextEvent) ext.nextEvent else null
         val apps = partitioned.allApps
 
         HomeUiState(
@@ -176,7 +186,6 @@ class LauncherViewModel(
             allApps = apps,
             selectedAppForMenu = selectedMenuApp,
             appToRename = renamingApp,
-            nextEvent = nextEv,
             showTimeAnchor = prefs.showTimeAnchor,
             showNextEvent = ext.showNextEvent,
             autoOpenKeyboard = ext.autoOpenKeyboard,
@@ -321,8 +330,7 @@ class LauncherViewModel(
         val autoOpenKeyboard: Boolean,
         val showNextEvent: Boolean,
         val showExpenseShortcut: Boolean,
-        val showCircleToSearchShortcut: Boolean,
-        val nextEvent: CalendarEventModel?
+        val showCircleToSearchShortcut: Boolean
     )
 }
 

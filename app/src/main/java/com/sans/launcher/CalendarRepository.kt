@@ -105,6 +105,10 @@ class CalendarRepository(private val context: Context) {
                 tryRegisterObserver()
                 val isDateOrTzChanged = intent?.action == Intent.ACTION_DATE_CHANGED ||
                         intent?.action == Intent.ACTION_TIMEZONE_CHANGED
+                val isTick = intent?.action == Intent.ACTION_TIME_TICK
+                if (isTick && !hasCalendarPermission() && cachedInstances == null) {
+                    return
+                }
                 queryAndEmit(forceQuery = isDateOrTzChanged)
             }
         }

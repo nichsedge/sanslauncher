@@ -143,14 +143,14 @@ fun HomeScreen(
         val enableHaptics = uiState.enableHaptics
 
         // Time Anchor Section (Long press top area opens settings!)
-        // Fix #7: timeState is collected inside TimeAnchorHeader to scope recomposition
+        // TimeState & NextEventState collected inside TimeAnchorHeader to scope recomposition
         if (!isSearching) {
             TimeAnchorHeader(
                 timeStateFlow = viewModel.timeState,
-                nextEvent = uiState.nextEvent,
+                nextEventFlow = viewModel.nextEventState,
                 showTime = uiState.showTimeAnchor,
                 showNextEvent = uiState.showNextEvent,
-                onEventClick = { viewModel.openCalendarApp(uiState.nextEvent?.startTimeMillis) },
+                onEventClick = { startTime -> viewModel.openCalendarApp(startTime) },
                 onLongClick = {
                     if (enableHaptics) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     onOpenSettings()
@@ -368,14 +368,15 @@ fun HomeScreen(
 @Composable
 private fun TimeAnchorHeader(
     timeStateFlow: StateFlow<TimeState>,
-    nextEvent: CalendarEventModel?,
+    nextEventFlow: StateFlow<CalendarEventModel?>,
     showTime: Boolean,
     showNextEvent: Boolean,
-    onEventClick: () -> Unit,
+    onEventClick: (Long?) -> Unit,
     onLongClick: () -> Unit
 ) {
-    // Fix #7: Collect timeState here so clock ticks only recompose this header, not the entire HomeScreen
+    // Collect timeState & nextEventState here so clock ticks only recompose this header, not the entire HomeScreen
     val timeState by timeStateFlow.collectAsStateWithLifecycle()
+    val nextEvent by nextEventFlow.collectAsStateWithLifecycle()
 
     Column(
         modifier = Modifier
@@ -407,11 +408,12 @@ private fun TimeAnchorHeader(
 
         // Single Next Upcoming Calendar Event
         if (showNextEvent && nextEvent != null) {
+            val event = nextEvent
             Spacer(modifier = Modifier.height(8.dp))
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { onEventClick() }
+                    .clickable { onEventClick(event?.startTimeMillis) }
                     .padding(vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -422,7 +424,7 @@ private fun TimeAnchorHeader(
                     modifier = Modifier.padding(end = 8.dp)
                 )
                 Text(
-                    text = "${nextEvent.timeDisplay} • ${nextEvent.title} (${nextEvent.relativeDisplay})",
+                    text = "${event?.timeDisplay} • ${event?.title} (${event?.relativeDisplay})",
                     style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
                     color = MaterialTheme.colorScheme.onBackground,
                     maxLines = 1,

@@ -93,7 +93,7 @@ class AppRepository(private val context: Context) {
 
             return apps
                 .distinctBy { it.uniqueKey }
-                .sortedBy { it.displayName.lowercase() }
+                .sortedBy { it.normalizedDisplayName }
         }
 
         trySend(queryApps())

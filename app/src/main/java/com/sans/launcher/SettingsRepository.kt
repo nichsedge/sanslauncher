@@ -39,7 +39,8 @@ class SettingsRepository(private val context: Context) {
     }.distinctUntilChanged()
 
     val customLabels: Flow<Map<String, String>> = context.dataStore.data.map { preferences ->
-        val raw = preferences[customLabelsKey] ?: ""
+        preferences[customLabelsKey] ?: ""
+    }.distinctUntilChanged().map { raw ->
         decodeLabels(raw)
     }.distinctUntilChanged()
 
