@@ -1,6 +1,6 @@
-# Sans Launcher 🧠⚡
+# Sans Launcher ⚡
 
-> A distraction-free, high-performance Android launcher engineered to scaffold executive function, combat time blindness, and reduce compulsive phone use for ADHD minds.
+> A distraction-free, high-performance Android launcher built for speed, focus, and intentional phone use.
 
 [![Release](https://img.shields.io/github/v/release/nichsedge/sanslauncher?style=flat-square)](https://github.com/nichsedge/sanslauncher/releases)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
@@ -10,8 +10,8 @@
 
 ## ✨ Features
 
-### 🧠 ADHD & Time Scaffolding
-- **"Next Up Only" Calendar Anchor**: Minimalist single-event preview under the clock (e.g. `14:00 • Team Sync in 20m`) to prevent cognitive overload while stopping time blindness.
+### ⏱️ Time & Calendar Anchor
+- **"Next Up Only" Calendar Anchor**: Minimalist single-event preview under the clock (e.g. `14:00 • Team Sync in 20m`) to keep upcoming commitments top of mind without visual overwhelm.
 - **Ambient Time & Date Anchor**: Clean digital clock and date grounded at the top.
 - **Tactile Haptic Feedback**: Crisp, subtle vibrational feedback on clicks and long presses.
 

@@ -120,9 +120,9 @@ fun SettingsScreen(
                 .weight(1f)
                 .fillMaxWidth()
         ) {
-            // --- SECTION 1: TIME & ADHD SCAFFOLDING ---
+            // --- SECTION 1: TIME & CALENDAR ---
             item {
-                SectionHeader("Time & ADHD Scaffolding")
+                SectionHeader("Time & Calendar")
                 SettingToggleRow(
                     title = "Show Clock & Date",
                     subtitle = "Ambient time anchor (long press top area opens settings)",
