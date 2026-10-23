@@ -101,6 +101,7 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         if (::launcherViewModel.isInitialized) {
             launcherViewModel.refreshCalendarEvents()
+            launcherViewModel.checkDefaultLauncherStatus(this)
         }
     }
 

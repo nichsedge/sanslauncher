@@ -1,6 +1,8 @@
 package com.sans.launcher
 
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -40,6 +42,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -60,6 +63,17 @@ fun SettingsScreen(
     val focusManager = LocalFocusManager.current
     val context = androidx.compose.ui.platform.LocalContext.current
     var filterQuery by remember { mutableStateOf("") }
+
+    val setDefaultLauncherResult = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) {
+        viewModel.checkDefaultLauncherStatus(context)
+    }
+
+    LifecycleResumeEffect(Unit) {
+        viewModel.checkDefaultLauncherStatus(context)
+        onPauseOrDispose { }
+    }
     val onStartRenaming: (AppModel) -> Unit = remember(viewModel) {
         { app -> viewModel.startRenamingApp(app) }
     }
@@ -129,7 +143,32 @@ fun SettingsScreen(
                 .weight(1f)
                 .fillMaxWidth()
         ) {
-            // --- SECTION 1: TIME & CALENDAR ---
+            // --- SECTION 1: DEFAULT LAUNCHER ---
+            item {
+                SectionHeader("Default Launcher")
+                SettingClickableRow(
+                    title = "Default Home App",
+                    subtitle = if (uiState.isDefaultLauncher) {
+                        "Sans Launcher is active as your default home app"
+                    } else {
+                        "Set Sans Launcher as your primary home app"
+                    },
+                    actionLabel = if (uiState.isDefaultLauncher) "Change" else "Set",
+                    onClick = {
+                        try {
+                            val intent = DefaultLauncherHelper.createSetDefaultLauncherIntent(context)
+                            setDefaultLauncherResult.launch(intent)
+                        } catch (_: Exception) {
+                            viewModel.openDefaultLauncherSettings(context)
+                        }
+                    }
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f))
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            // --- SECTION 2: TIME & CALENDAR ---
             item {
                 SectionHeader("Time & Calendar")
                 SettingToggleRow(

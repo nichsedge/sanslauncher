@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -34,6 +35,7 @@ data class HomeUiState(
     val themeMode: String = "dark",
     val fontStyle: String = "sans",
     val enableHaptics: Boolean = true,
+    val isDefaultLauncher: Boolean = false,
     val isLoading: Boolean = true
 )
 
@@ -56,6 +58,8 @@ class LauncherViewModel(
     private val _searchQuery = MutableStateFlow("")
     private val _selectedAppForMenu = MutableStateFlow<AppModel?>(null)
     private val _appToRename = MutableStateFlow<AppModel?>(null)
+    private val _isDefaultLauncher = MutableStateFlow(false)
+    val isDefaultLauncher: StateFlow<Boolean> = _isDefaultLauncher.asStateFlow()
 
     val timeState: StateFlow<TimeState> = settingsRepository.showTimeAnchor
         .flatMapLatest { show ->
@@ -208,6 +212,7 @@ class LauncherViewModel(
         .stateIn(viewModelScope, SharingStarted.Lazily, SearchResult())
 
     init {
+        checkDefaultLauncherStatus(context)
         viewModelScope.launch {
             searchResultFlow.collect { result ->
                 if (result.query.isNotEmpty() &&
@@ -224,8 +229,9 @@ class LauncherViewModel(
         partitionedAppsFlow,
         searchResultFlow,
         dialogStatesFlow,
-        combine(preferencesFlow, extendedPrefsFlow) { p, ep -> p to ep }
-    ) { partitioned, searchResult, (selectedMenuApp, renamingApp), (prefs, ext) ->
+        combine(preferencesFlow, extendedPrefsFlow) { p, ep -> p to ep },
+        _isDefaultLauncher
+    ) { partitioned, searchResult, (selectedMenuApp, renamingApp), (prefs, ext), isDefault ->
         val apps = partitioned.allApps
 
         HomeUiState(
@@ -242,6 +248,7 @@ class LauncherViewModel(
             themeMode = prefs.themeMode,
             fontStyle = prefs.fontStyle,
             enableHaptics = prefs.enableHaptics,
+            isDefaultLauncher = isDefault,
             isLoading = apps.isEmpty()
         )
     }.stateIn(viewModelScope, SharingStarted.Lazily, HomeUiState())
@@ -357,6 +364,15 @@ class LauncherViewModel(
     fun recordExpense(query: String? = null) {
         appRepository.launchRecordExpense(query)
         _searchQuery.value = ""
+    }
+
+    fun checkDefaultLauncherStatus(context: Context) {
+        _isDefaultLauncher.value = DefaultLauncherHelper.isDefaultLauncher(context)
+    }
+
+    fun openDefaultLauncherSettings(context: Context) {
+        DefaultLauncherHelper.launchSetDefaultLauncher(context)
+        checkDefaultLauncherStatus(context)
     }
 
     fun refreshCalendarEvents(force: Boolean = false) {
