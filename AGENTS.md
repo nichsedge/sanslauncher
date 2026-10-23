@@ -32,6 +32,9 @@ During interactive development and pairing, use `./gradlew test` and `./gradlew 
 # Compile and package debug APK (Fast developer verification)
 ./gradlew assembleDebug
 
+# Generate Compose compiler metrics & stability reports (On demand)
+./gradlew compileDebugKotlin -Pcompose.metrics=true
+
 # Compile optimized release APK (Only when creating a production release)
 ./gradlew assembleRelease
 ```
