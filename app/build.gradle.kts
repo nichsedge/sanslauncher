@@ -3,9 +3,13 @@ plugins {
     alias(libs.plugins.composeCompiler)
 }
 
-composeCompiler {
-    reportsDestination = layout.buildDirectory.dir("compose_reports")
-    metricsDestination = layout.buildDirectory.dir("compose_metrics")
+// Generate Compose compiler stability reports on demand:
+//   ./gradlew compileDebugKotlin -Pcompose.metrics=true
+if (findProperty("compose.metrics") == "true") {
+    composeCompiler {
+        reportsDestination = layout.buildDirectory.dir("compose_reports")
+        metricsDestination = layout.buildDirectory.dir("compose_metrics")
+    }
 }
 
 android {
