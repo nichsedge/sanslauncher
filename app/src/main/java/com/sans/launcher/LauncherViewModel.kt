@@ -83,23 +83,46 @@ class LauncherViewModel(
         settingsRepository.hiddenApps,
         settingsRepository.customLabels
     ) { apps, favorites, hidden, labels ->
-        val updatedApps = apps.map { app ->
-            app.copy(
-                isFavorite = app.packageName in favorites || app.uniqueKey in favorites,
-                isHidden = app.packageName in hidden || app.uniqueKey in hidden,
-                customLabel = labels[app.uniqueKey] ?: labels[app.packageName]
+        val updatedApps = ArrayList<AppModel>(apps.size)
+        for (i in 0 until apps.size) {
+            val app = apps[i]
+            val isFav = app.packageName in favorites || app.uniqueKey in favorites
+            val isHid = app.packageName in hidden || app.uniqueKey in hidden
+            val alias = labels[app.uniqueKey] ?: labels[app.packageName]
+            updatedApps.add(
+                app.copy(
+                    isFavorite = isFav,
+                    isHidden = isHid,
+                    customLabel = alias
+                )
             )
         }
-        val visible = updatedApps.filter { !it.isHidden }
-        val favs = visible.filter { it.isFavorite }.sortedBy { it.normalizedDisplayName }
-        val others = visible.filter { !it.isFavorite }.sortedBy { it.normalizedDisplayName }
+        updatedApps.sortBy { it.normalizedDisplayName }
+
+        val visible = ArrayList<AppModel>(updatedApps.size)
+        val favs = ArrayList<AppModel>()
+        val others = ArrayList<AppModel>()
+        for (i in 0 until updatedApps.size) {
+            val app = updatedApps[i]
+            if (!app.isHidden) {
+                visible.add(app)
+                if (app.isFavorite) {
+                    favs.add(app)
+                } else {
+                    others.add(app)
+                }
+            }
+        }
+
         PartitionedApps(
             allApps = updatedApps,
             favorites = favs,
             others = others,
             visibleApps = visible
         )
-    }.stateIn(viewModelScope, SharingStarted.Lazily, PartitionedApps())
+    }
+        .flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.Lazily, PartitionedApps())
 
     val allAppsFlow: StateFlow<List<AppModel>> = partitionedAppsFlow
         .map { it.allApps }
