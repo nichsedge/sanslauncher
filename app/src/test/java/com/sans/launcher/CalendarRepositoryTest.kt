@@ -391,4 +391,40 @@ class CalendarRepositoryTest {
         val atStart = CalendarRepository.selectNextUpcomingEvent(events, eventStart, zoneId, true)
         assertEquals("now", atStart?.relativeDisplay)
     }
+
+    @Test
+    fun testIsCacheFresh_ReturnsFalseWhenNoCacheOrNullDate() {
+        val today = LocalDate.of(2026, 9, 2)
+        val now = 100000L
+        org.junit.Assert.assertFalse(CalendarRepository.isCacheFresh(false, today, today, now - 1000, now))
+        org.junit.Assert.assertFalse(CalendarRepository.isCacheFresh(true, null, today, now - 1000, now))
+    }
+
+    @Test
+    fun testIsCacheFresh_ReturnsFalseWhenDateChanged() {
+        val yesterday = LocalDate.of(2026, 9, 1)
+        val today = LocalDate.of(2026, 9, 2)
+        val now = 100000L
+        org.junit.Assert.assertFalse(CalendarRepository.isCacheFresh(true, yesterday, today, now - 1000, now))
+    }
+
+    @Test
+    fun testIsCacheFresh_ReturnsFalseWhenAgeExceedsMaxAge() {
+        val today = LocalDate.of(2026, 9, 2)
+        val lastTimestamp = 100000L
+        val currentTimestamp = lastTimestamp + 31000L // 31 seconds later
+        org.junit.Assert.assertFalse(
+            CalendarRepository.isCacheFresh(true, today, today, lastTimestamp, currentTimestamp, maxAgeMillis = 30000L)
+        )
+    }
+
+    @Test
+    fun testIsCacheFresh_ReturnsTrueWhenWithinMaxAgeAndSameDate() {
+        val today = LocalDate.of(2026, 9, 2)
+        val lastTimestamp = 100000L
+        val currentTimestamp = lastTimestamp + 15000L // 15 seconds later
+        org.junit.Assert.assertTrue(
+            CalendarRepository.isCacheFresh(true, today, today, lastTimestamp, currentTimestamp, maxAgeMillis = 30000L)
+        )
+    }
 }

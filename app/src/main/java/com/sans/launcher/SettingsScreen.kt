@@ -60,6 +60,15 @@ fun SettingsScreen(
     val focusManager = LocalFocusManager.current
     val context = androidx.compose.ui.platform.LocalContext.current
     var filterQuery by remember { mutableStateOf("") }
+    val onStartRenaming: (AppModel) -> Unit = remember(viewModel) {
+        { app -> viewModel.startRenamingApp(app) }
+    }
+    val onToggleFavorite: (String) -> Unit = remember(viewModel) {
+        { key -> viewModel.toggleFavorite(key) }
+    }
+    val onToggleHidden: (String) -> Unit = remember(viewModel) {
+        { key -> viewModel.toggleHidden(key) }
+    }
 
     BackHandler(enabled = uiState.appToRename != null || filterQuery.isNotEmpty()) {
         when {
@@ -269,61 +278,16 @@ fun SettingsScreen(
 
             items(
                 items = filteredApps,
-                key = { it.uniqueKey }
+                key = { it.uniqueKey },
+                contentType = { "settings_app_row" }
             ) { app ->
-                Row(
-                    modifier = Modifier
-                        .animateItem()
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable { viewModel.startRenamingApp(app) }
-                            .padding(vertical = 4.dp)
-                    ) {
-                        Text(
-                            text = app.displayName,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = if (app.isHidden) MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f) else MaterialTheme.colorScheme.onBackground
-                        )
-                        if (app.customLabel != null && app.customLabel != app.label) {
-                            Text(
-                                text = "Orig: ${app.label}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f)
-                            )
-                        }
-                    }
-
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(2.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        SettingIconButton(
-                            icon = Icons.Default.Edit,
-                            active = false,
-                            contentDescription = "Rename ${app.displayName}",
-                            onClick = { viewModel.startRenamingApp(app) }
-                        )
-
-                        SettingIconButton(
-                            icon = if (app.isFavorite) Icons.Filled.Star else LauncherIcons.StarBorder,
-                            active = app.isFavorite,
-                            contentDescription = if (app.isFavorite) "Remove ${app.displayName} from pinned favorites" else "Pin ${app.displayName} to favorites",
-                            onClick = { viewModel.toggleFavorite(app.uniqueKey) }
-                        )
-
-                        SettingIconButton(
-                            icon = if (!app.isHidden) LauncherIcons.Visibility else LauncherIcons.VisibilityOff,
-                            active = !app.isHidden,
-                            contentDescription = if (app.isHidden) "Unhide ${app.displayName}" else "Hide ${app.displayName}",
-                            onClick = { viewModel.toggleHidden(app.uniqueKey) }
-                        )
-                    }
-                }
+                SettingsAppRow(
+                    app = app,
+                    onStartRenaming = onStartRenaming,
+                    onToggleFavorite = onToggleFavorite,
+                    onToggleHidden = onToggleHidden,
+                    modifier = Modifier.animateItem()
+                )
             }
         }
     }
@@ -458,5 +422,67 @@ private fun SettingIconButton(
             contentDescription = contentDescription,
             tint = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary.copy(alpha = 0.4f)
         )
+    }
+}
+
+@Composable
+private fun SettingsAppRow(
+    app: AppModel,
+    onStartRenaming: (AppModel) -> Unit,
+    onToggleFavorite: (String) -> Unit,
+    onToggleHidden: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .clickable { onStartRenaming(app) }
+                .padding(vertical = 4.dp)
+        ) {
+            Text(
+                text = app.displayName,
+                style = MaterialTheme.typography.bodyLarge,
+                color = if (app.isHidden) MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f) else MaterialTheme.colorScheme.onBackground
+            )
+            if (app.customLabel != null && app.customLabel != app.label) {
+                Text(
+                    text = "Orig: ${app.label}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f)
+                )
+            }
+        }
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            SettingIconButton(
+                icon = Icons.Default.Edit,
+                active = false,
+                contentDescription = "Rename ${app.displayName}",
+                onClick = { onStartRenaming(app) }
+            )
+
+            SettingIconButton(
+                icon = if (app.isFavorite) Icons.Filled.Star else LauncherIcons.StarBorder,
+                active = app.isFavorite,
+                contentDescription = if (app.isFavorite) "Remove ${app.displayName} from pinned favorites" else "Pin ${app.displayName} to favorites",
+                onClick = { onToggleFavorite(app.uniqueKey) }
+            )
+
+            SettingIconButton(
+                icon = if (!app.isHidden) LauncherIcons.Visibility else LauncherIcons.VisibilityOff,
+                active = !app.isHidden,
+                contentDescription = if (app.isHidden) "Unhide ${app.displayName}" else "Hide ${app.displayName}",
+                onClick = { onToggleHidden(app.uniqueKey) }
+            )
+        }
     }
 }

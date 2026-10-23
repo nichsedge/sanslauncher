@@ -52,10 +52,16 @@ data class CalendarInstanceData(
 
 class CalendarRepository(private val context: Context) {
 
-    private val refreshTrigger = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    private val refreshTrigger = MutableSharedFlow<Boolean>(extraBufferCapacity = 1)
 
     @Volatile
     private var cachedInstances: List<CalendarInstanceData>? = null
+
+    @Volatile
+    private var lastQueryTimestamp: Long = 0L
+
+    @Volatile
+    private var lastQueryLocalDate: LocalDate? = null
 
     fun hasCalendarPermission(): Boolean {
         return ContextCompat.checkSelfPermission(
@@ -64,8 +70,19 @@ class CalendarRepository(private val context: Context) {
         ) == PackageManager.PERMISSION_GRANTED
     }
 
-    fun refresh() {
-        refreshTrigger.tryEmit(Unit)
+    fun isCacheValid(maxAgeMillis: Long = 30_000L): Boolean {
+        return isCacheFresh(
+            hasCache = cachedInstances != null,
+            lastDate = lastQueryLocalDate,
+            currentDate = LocalDate.now(ZoneId.systemDefault()),
+            lastTimestamp = lastQueryTimestamp,
+            currentTimestamp = System.currentTimeMillis(),
+            maxAgeMillis = maxAgeMillis
+        )
+    }
+
+    fun refresh(force: Boolean = false) {
+        refreshTrigger.tryEmit(force)
     }
 
     fun getNextUpcomingEventFlow(): Flow<CalendarEventModel?> = callbackFlow {
@@ -87,11 +104,6 @@ class CalendarRepository(private val context: Context) {
                 try {
                     context.contentResolver.registerContentObserver(
                         CalendarContract.CONTENT_URI,
-                        true,
-                        obs
-                    )
-                    context.contentResolver.registerContentObserver(
-                        CalendarContract.Events.CONTENT_URI,
                         true,
                         obs
                     )
@@ -134,12 +146,12 @@ class CalendarRepository(private val context: Context) {
         }
 
         tryRegisterObserver()
-        queryAndEmit(forceQuery = true)
+        queryAndEmit(forceQuery = !isCacheValid())
 
         val refreshJob = launch(Dispatchers.IO) {
-            refreshTrigger.collect {
+            refreshTrigger.collect { force ->
                 tryRegisterObserver()
-                queryAndEmit(forceQuery = true)
+                queryAndEmit(forceQuery = force || !isCacheValid())
             }
         }
 
@@ -228,6 +240,8 @@ class CalendarRepository(private val context: Context) {
         }
 
         cachedInstances = instances
+        lastQueryTimestamp = System.currentTimeMillis()
+        lastQueryLocalDate = todayLocalDate
         return instances
     }
 
@@ -280,6 +294,20 @@ class CalendarRepository(private val context: Context) {
     }
 
     companion object {
+        fun isCacheFresh(
+            hasCache: Boolean,
+            lastDate: LocalDate?,
+            currentDate: LocalDate,
+            lastTimestamp: Long,
+            currentTimestamp: Long,
+            maxAgeMillis: Long = 30_000L
+        ): Boolean {
+            if (!hasCache || lastDate == null) return false
+            if (currentDate != lastDate) return false
+            val age = currentTimestamp - lastTimestamp
+            return age in 0 until maxAgeMillis
+        }
+
         private val PROJECTION = arrayOf(
             CalendarContract.Instances.TITLE,
             CalendarContract.Instances.BEGIN,

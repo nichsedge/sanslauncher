@@ -1,35 +1,40 @@
 package com.sans.launcher
 
-import androidx.compose.runtime.Composable
+import android.content.Context
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
 
 object LauncherIcons {
-    val AttachMoney: ImageVector
-        @Composable
-        get() = ImageVector.vectorResource(R.drawable.ic_attach_money)
+    lateinit var AttachMoney: ImageVector
+        private set
 
-    val CalendarToday: ImageVector
-        @Composable
-        get() = ImageVector.vectorResource(R.drawable.ic_calendar_today)
+    lateinit var CalendarToday: ImageVector
+        private set
 
-    val Visibility: ImageVector
-        @Composable
-        get() = ImageVector.vectorResource(R.drawable.ic_visibility)
+    lateinit var Visibility: ImageVector
+        private set
 
-    val VisibilityOff: ImageVector
-        @Composable
-        get() = ImageVector.vectorResource(R.drawable.ic_visibility_off)
+    lateinit var VisibilityOff: ImageVector
+        private set
 
-    val StarBorder: ImageVector
-        @Composable
-        get() = ImageVector.vectorResource(R.drawable.ic_star_border)
+    lateinit var StarBorder: ImageVector
+        private set
 
-    val Work: ImageVector
-        @Composable
-        get() = ImageVector.vectorResource(R.drawable.ic_work)
+    lateinit var Work: ImageVector
+        private set
 
-    val Search: ImageVector
-        @Composable
-        get() = ImageVector.vectorResource(R.drawable.ic_search)
+    lateinit var Search: ImageVector
+        private set
+
+    fun initialize(context: Context) {
+        val res = context.resources
+        val theme = context.theme
+        AttachMoney = ImageVector.vectorResource(theme, res, R.drawable.ic_attach_money)
+        CalendarToday = ImageVector.vectorResource(theme, res, R.drawable.ic_calendar_today)
+        Visibility = ImageVector.vectorResource(theme, res, R.drawable.ic_visibility)
+        VisibilityOff = ImageVector.vectorResource(theme, res, R.drawable.ic_visibility_off)
+        StarBorder = ImageVector.vectorResource(theme, res, R.drawable.ic_star_border)
+        Work = ImageVector.vectorResource(theme, res, R.drawable.ic_work)
+        Search = ImageVector.vectorResource(theme, res, R.drawable.ic_search)
+    }
 }

@@ -1,29 +1,31 @@
 package com.sans.launcher
 
 import android.content.Context
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-
-import androidx.compose.runtime.Immutable
-import kotlinx.coroutines.flow.map
 
 @Immutable
 data class HomeUiState(
     val searchQuery: String = "",
     val favoriteApps: List<AppModel> = emptyList(),
     val otherApps: List<AppModel> = emptyList(),
-    val allApps: List<AppModel> = emptyList(),
     val selectedAppForMenu: AppModel? = null,
     val appToRename: AppModel? = null,
-    val nextEvent: CalendarEventModel? = null,
     val showTimeAnchor: Boolean = true,
     val showNextEvent: Boolean = true,
     val autoOpenKeyboard: Boolean = false,
@@ -43,7 +45,7 @@ data class PartitionedApps(
     val visibleApps: List<AppModel> = emptyList()
 )
 
-@OptIn(FlowPreview::class)
+@OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 class LauncherViewModel(
     private val appRepository: AppRepository,
     private val settingsRepository: SettingsRepository,
@@ -55,11 +57,25 @@ class LauncherViewModel(
     private val _selectedAppForMenu = MutableStateFlow<AppModel?>(null)
     private val _appToRename = MutableStateFlow<AppModel?>(null)
 
-    val timeState: StateFlow<TimeState> = TimeAnchorHelper.timeStateFlow(context)
-        .stateIn(viewModelScope, SharingStarted.Lazily, TimeAnchorHelper.calculateTimeState())
+    val timeState: StateFlow<TimeState> = settingsRepository.showTimeAnchor
+        .flatMapLatest { show ->
+            if (show) {
+                TimeAnchorHelper.timeStateFlow(context)
+            } else {
+                flowOf(TimeAnchorHelper.calculateTimeState())
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), TimeAnchorHelper.calculateTimeState())
 
-    val nextEventState: StateFlow<CalendarEventModel?> = calendarRepository.getNextUpcomingEventFlow()
-        .stateIn(viewModelScope, SharingStarted.Lazily, null)
+    val nextEventState: StateFlow<CalendarEventModel?> = settingsRepository.showNextEvent
+        .flatMapLatest { show ->
+            if (show) {
+                calendarRepository.getNextUpcomingEventFlow()
+            } else {
+                flowOf(null)
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     val partitionedAppsFlow: StateFlow<PartitionedApps> = combine(
         appRepository.getInstalledApps(),
@@ -158,18 +174,28 @@ class LauncherViewModel(
                 matched.add(scored[i].app)
             }
 
-            // Instant Auto-Launch: exactly 1 match → launch immediately
-            if (matched.size == 1 && !SearchMatcher.isSettingsQuery(query.trim())) {
-                viewModelScope.launch { launchApp(matched.first()) }
-            }
-
             SearchResult(
                 query = query,
                 favoriteApps = emptyList(),
                 otherApps = matched
             )
         }
-    }.stateIn(viewModelScope, SharingStarted.Lazily, SearchResult())
+    }
+        .flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.Lazily, SearchResult())
+
+    init {
+        viewModelScope.launch {
+            searchResultFlow.collect { result ->
+                if (result.query.isNotEmpty() &&
+                    result.otherApps.size == 1 &&
+                    !SearchMatcher.isSettingsQuery(result.query.trim())
+                ) {
+                    launchApp(result.otherApps.first())
+                }
+            }
+        }
+    }
 
     val uiState: StateFlow<HomeUiState> = combine(
         partitionedAppsFlow,
@@ -183,7 +209,6 @@ class LauncherViewModel(
             searchQuery = searchResult.query,
             favoriteApps = searchResult.favoriteApps,
             otherApps = searchResult.otherApps,
-            allApps = apps,
             selectedAppForMenu = selectedMenuApp,
             appToRename = renamingApp,
             showTimeAnchor = prefs.showTimeAnchor,
@@ -311,8 +336,10 @@ class LauncherViewModel(
         _searchQuery.value = ""
     }
 
-    fun refreshCalendarEvents() {
-        calendarRepository.refresh()
+    fun refreshCalendarEvents(force: Boolean = false) {
+        if (uiState.value.showNextEvent) {
+            calendarRepository.refresh(force)
+        }
     }
 
     fun openCalendarApp(startTimeMillis: Long? = null) {

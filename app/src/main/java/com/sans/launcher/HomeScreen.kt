@@ -47,6 +47,7 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -139,8 +140,14 @@ fun HomeScreen(
                 }
             }
     ) {
-        val isSearching = uiState.searchQuery.isNotEmpty()
+        val isSearching by remember { derivedStateOf { uiState.searchQuery.isNotEmpty() } }
         val enableHaptics = uiState.enableHaptics
+        val onLaunchApp: (AppModel) -> Unit = remember(viewModel) {
+            { app -> viewModel.launchApp(app) }
+        }
+        val onOpenAppMenu: (AppModel) -> Unit = remember(viewModel) {
+            { app -> viewModel.openAppMenu(app) }
+        }
 
         // Time Anchor Section (Long press top area opens settings!)
         // TimeState & NextEventState collected inside TimeAnchorHeader to scope recomposition
@@ -212,15 +219,10 @@ fun HomeScreen(
                 ) { app ->
                     AppItem(
                         app = app,
+                        onLaunchApp = onLaunchApp,
+                        onOpenAppMenu = onOpenAppMenu,
+                        enableHaptics = enableHaptics,
                         modifier = Modifier.animateItem(),
-                        onClick = {
-                            if (enableHaptics) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            viewModel.launchApp(app)
-                        },
-                        onLongClick = {
-                            if (enableHaptics) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            viewModel.openAppMenu(app)
-                        },
                         isBold = true
                     )
                 }
@@ -244,15 +246,10 @@ fun HomeScreen(
             ) { app ->
                 AppItem(
                     app = app,
+                    onLaunchApp = onLaunchApp,
+                    onOpenAppMenu = onOpenAppMenu,
+                    enableHaptics = enableHaptics,
                     modifier = Modifier.animateItem(),
-                    onClick = {
-                        if (enableHaptics) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        viewModel.launchApp(app)
-                    },
-                    onLongClick = {
-                        if (enableHaptics) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        viewModel.openAppMenu(app)
-                    },
                     alpha = if (!isSearching) 0.65f else 1f
                 )
             }
@@ -456,19 +453,27 @@ private fun TimeAnchorHeader(
 @Composable
 private fun AppItem(
     app: AppModel,
-    onClick: () -> Unit,
-    onLongClick: () -> Unit,
+    onLaunchApp: (AppModel) -> Unit,
+    onOpenAppMenu: (AppModel) -> Unit,
+    enableHaptics: Boolean,
     modifier: Modifier = Modifier,
     alpha: Float = 1f,
     isBold: Boolean = false
 ) {
+    val haptic = LocalHapticFeedback.current
     Row(
         modifier = modifier
             .fillMaxWidth()
             .defaultMinSize(minHeight = 48.dp)
             .combinedClickable(
-                onClick = onClick,
-                onLongClick = onLongClick,
+                onClick = {
+                    if (enableHaptics) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onLaunchApp(app)
+                },
+                onLongClick = {
+                    if (enableHaptics) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onOpenAppMenu(app)
+                },
                 onClickLabel = "Launch ${app.displayName}",
                 onLongClickLabel = "Open options for ${app.displayName}"
             )

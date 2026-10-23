@@ -6,6 +6,16 @@ HSPLcom/sans/launcher/MainActivity;->onCreate(Landroid/os/Bundle;)V
 HSPLcom/sans/launcher/MainActivity;->onResume()V
 HSPLcom/sans/launcher/MainActivity;->onNewIntent(Landroid/content/Intent;)V
 
+Lcom/sans/launcher/LauncherIcons;
+HSPLcom/sans/launcher/LauncherIcons;->initialize(Landroid/content/Context;)V
+HSPLcom/sans/launcher/LauncherIcons;->getAttachMoney()Landroidx/compose/ui/graphics/vector/ImageVector;
+HSPLcom/sans/launcher/LauncherIcons;->getCalendarToday()Landroidx/compose/ui/graphics/vector/ImageVector;
+HSPLcom/sans/launcher/LauncherIcons;->getVisibility()Landroidx/compose/ui/graphics/vector/ImageVector;
+HSPLcom/sans/launcher/LauncherIcons;->getVisibilityOff()Landroidx/compose/ui/graphics/vector/ImageVector;
+HSPLcom/sans/launcher/LauncherIcons;->getStarBorder()Landroidx/compose/ui/graphics/vector/ImageVector;
+HSPLcom/sans/launcher/LauncherIcons;->getWork()Landroidx/compose/ui/graphics/vector/ImageVector;
+HSPLcom/sans/launcher/LauncherIcons;->getSearch()Landroidx/compose/ui/graphics/vector/ImageVector;
+
 Lcom/sans/launcher/LauncherViewModel;
 HSPLcom/sans/launcher/LauncherViewModel;-><init>(Lcom/sans/launcher/AppRepository;Lcom/sans/launcher/SettingsRepository;Lcom/sans/launcher/CalendarRepository;Landroid/content/Context;)V
 HSPLcom/sans/launcher/LauncherViewModel;->getUiState()Lkotlinx/coroutines/flow/StateFlow;
@@ -60,6 +70,9 @@ HSPLcom/sans/launcher/NotificationShadeHelper;->expandNotificationShade(Landroid
 
 Lcom/sans/launcher/HomeScreenKt;
 HSPLcom/sans/launcher/HomeScreenKt;->HomeScreen(Lcom/sans/launcher/LauncherViewModel;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Landroidx/compose/runtime/Composer;I)V
+
+Lcom/sans/launcher/SettingsScreenKt;
+HSPLcom/sans/launcher/SettingsScreenKt;->SettingsScreen(Lcom/sans/launcher/LauncherViewModel;Lkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function0;Landroidx/compose/runtime/Composer;I)V
 
 Lcom/sans/launcher/LauncherThemeKt;
 HSPLcom/sans/launcher/LauncherThemeKt;->LauncherTheme(Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V

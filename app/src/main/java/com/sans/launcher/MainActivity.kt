@@ -29,12 +29,13 @@ class MainActivity : ComponentActivity() {
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted && ::launcherViewModel.isInitialized) {
-            launcherViewModel.refreshCalendarEvents()
+            launcherViewModel.refreshCalendarEvents(force = true)
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        LauncherIcons.initialize(this)
         
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT),
@@ -111,7 +112,6 @@ class MainActivity : ComponentActivity() {
             launcherViewModel.updateSearchQuery("")
             launcherViewModel.dismissAppMenu()
             launcherViewModel.dismissRenameDialog()
-            launcherViewModel.refreshCalendarEvents()
         }
     }
 }
