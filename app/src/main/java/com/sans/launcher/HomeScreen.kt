@@ -52,6 +52,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -65,8 +66,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -93,12 +96,36 @@ fun HomeScreen(
     val context = LocalContext.current
     val focusRequester = remember { FocusRequester() }
 
+    var textFieldValue by remember {
+        mutableStateOf(TextFieldValue(uiState.searchQuery, TextRange(uiState.searchQuery.length)))
+    }
+
+    LaunchedEffect(uiState.searchQuery) {
+        if (uiState.searchQuery != textFieldValue.text) {
+            textFieldValue = TextFieldValue(
+                text = uiState.searchQuery,
+                selection = TextRange(uiState.searchQuery.length)
+            )
+        }
+    }
+
     // BackHandler for granular state cleanup (moved from MainActivity to avoid full uiState collection there)
-    BackHandler(enabled = uiState.appToRename != null || uiState.selectedAppForMenu != null || uiState.searchQuery.isNotEmpty()) {
+    BackHandler(enabled = uiState.appToRename != null || uiState.selectedAppForMenu != null || textFieldValue.text.isNotEmpty()) {
         when {
             uiState.appToRename != null -> viewModel.dismissRenameDialog()
             uiState.selectedAppForMenu != null -> viewModel.dismissAppMenu()
-            uiState.searchQuery.isNotEmpty() -> viewModel.updateSearchQuery("")
+            textFieldValue.text.isNotEmpty() -> {
+                textFieldValue = TextFieldValue("", TextRange.Zero)
+                viewModel.updateSearchQuery("")
+            }
+        }
+    }
+
+    var permissionRequested by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(uiState.showNextEvent) {
+        if (uiState.showNextEvent && !permissionRequested) {
+            permissionRequested = true
+            onRequestCalendarPermission()
         }
     }
 
@@ -261,8 +288,11 @@ fun HomeScreen(
 
         // Full-width Minimal Search Bar
         TextField(
-            value = uiState.searchQuery,
-            onValueChange = { viewModel.updateSearchQuery(it) },
+            value = textFieldValue,
+            onValueChange = { newValue ->
+                textFieldValue = newValue
+                viewModel.updateSearchQuery(newValue.text)
+            },
             placeholder = {
                 Text(
                     "type to search...",
@@ -313,7 +343,7 @@ fun HomeScreen(
                         IconButton(
                             onClick = {
                                 if (enableHaptics) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                viewModel.recordExpense(uiState.searchQuery)
+                                viewModel.recordExpense(textFieldValue.text)
                                 focusManager.clearFocus()
                             }
                         ) {
@@ -324,8 +354,13 @@ fun HomeScreen(
                             )
                         }
                     }
-                    if (uiState.searchQuery.isNotEmpty()) {
-                        IconButton(onClick = { viewModel.updateSearchQuery("") }) {
+                    if (textFieldValue.text.isNotEmpty()) {
+                        IconButton(
+                            onClick = {
+                                textFieldValue = TextFieldValue("", TextRange.Zero)
+                                viewModel.updateSearchQuery("")
+                            }
+                        ) {
                             Icon(
                                 imageVector = Icons.Default.Clear,
                                 contentDescription = "Clear search",

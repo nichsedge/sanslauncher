@@ -1,5 +1,8 @@
 package com.sans.launcher
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -170,6 +173,11 @@ fun SettingsScreen(
 
             // --- SECTION 2: TIME & CALENDAR ---
             item {
+                val hasCalendarPermission = ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.READ_CALENDAR
+                ) == PackageManager.PERMISSION_GRANTED
+
                 SectionHeader("Time & Calendar")
                 SettingToggleRow(
                     title = "Show Clock & Date",
@@ -179,11 +187,17 @@ fun SettingsScreen(
                 )
                 SettingToggleRow(
                     title = "Next Calendar Event",
-                    subtitle = "Single upcoming event preview under the date",
-                    checked = uiState.showNextEvent,
-                    onCheckedChange = {
-                        viewModel.setShowNextEvent(it)
-                        if (it) onRequestCalendarPermission()
+                    subtitle = if (uiState.showNextEvent && !hasCalendarPermission) {
+                        "Calendar permission required • Tap to grant"
+                    } else {
+                        "Single upcoming event preview under the date"
+                    },
+                    checked = uiState.showNextEvent && hasCalendarPermission,
+                    onCheckedChange = { enabled ->
+                        viewModel.setShowNextEvent(enabled)
+                        if (enabled && !hasCalendarPermission) {
+                            onRequestCalendarPermission()
+                        }
                     }
                 )
                 Spacer(modifier = Modifier.height(16.dp))

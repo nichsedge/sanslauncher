@@ -233,12 +233,16 @@ class AppRepository(private val context: Context) {
         try {
             val intent = Intent(Intent.ACTION_DELETE).apply {
                 data = Uri.parse("package:$packageName")
-                if (userHandle != null) {
+                if (userHandle != null && userHandle != Process.myUserHandle()) {
                     putExtra(Intent.EXTRA_USER, userHandle)
                 }
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             context.startActivity(intent)
-        } catch (_: Exception) { }
+        } catch (_: Exception) {
+            try {
+                openAppInfo(packageName, userHandle)
+            } catch (_: Exception) { }
+        }
     }
 }
