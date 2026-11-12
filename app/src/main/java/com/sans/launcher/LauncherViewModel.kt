@@ -211,15 +211,23 @@ class LauncherViewModel(
         .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.Lazily, SearchResult())
 
+    private var isAutoLaunching = false
+
     init {
         checkDefaultLauncherStatus(context)
         viewModelScope.launch {
             searchResultFlow.collect { result ->
-                if (result.query.isNotEmpty() &&
+                if (!isAutoLaunching &&
+                    result.query.isNotEmpty() &&
                     result.otherApps.size == 1 &&
                     !SearchMatcher.isSettingsQuery(result.query.trim())
                 ) {
-                    launchApp(result.otherApps.first())
+                    isAutoLaunching = true
+                    try {
+                        launchApp(result.otherApps.first())
+                    } finally {
+                        isAutoLaunching = false
+                    }
                 }
             }
         }
@@ -307,11 +315,6 @@ class LauncherViewModel(
 
     fun uninstallApp(app: AppModel) {
         appRepository.uninstallApp(app.packageName, app.userHandle)
-        _selectedAppForMenu.value = null
-    }
-
-    fun uninstallApp(packageName: String, userHandle: android.os.UserHandle? = null) {
-        appRepository.uninstallApp(packageName, userHandle)
         _selectedAppForMenu.value = null
     }
 

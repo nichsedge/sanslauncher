@@ -324,11 +324,11 @@ class CalendarRepository(private val context: Context) {
             CalendarContract.Instances.ALL_DAY
         )
 
-        private val TIME_FORMAT_24 = DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault())
-        private val TIME_FORMAT_12 = DateTimeFormatter.ofPattern("h:mm a", Locale.getDefault())
-        private val DATE_TIME_FORMAT_24 = DateTimeFormatter.ofPattern("EEE HH:mm", Locale.getDefault())
-        private val DATE_TIME_FORMAT_12 = DateTimeFormatter.ofPattern("EEE h:mm a", Locale.getDefault())
-        private val DATE_FORMAT_SHORT = DateTimeFormatter.ofPattern("EEE, MMM d", Locale.getDefault())
+        private fun getTimeFormat24() = DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault())
+        private fun getTimeFormat12() = DateTimeFormatter.ofPattern("h:mm a", Locale.getDefault())
+        private fun getDateTimeFormat24() = DateTimeFormatter.ofPattern("EEE HH:mm", Locale.getDefault())
+        private fun getDateTimeFormat12() = DateTimeFormatter.ofPattern("EEE h:mm a", Locale.getDefault())
+        private fun getDateFormatShort() = DateTimeFormatter.ofPattern("EEE, MMM d", Locale.getDefault())
 
         fun selectNextUpcomingEvent(
             events: List<CalendarInstanceData>,
@@ -339,8 +339,9 @@ class CalendarRepository(private val context: Context) {
             val todayLocalDate = Instant.ofEpochMilli(now).atZone(zoneId).toLocalDate()
             val tomorrowLocalDate = todayLocalDate.plusDays(1)
 
-            val timeFormatter = if (is24Hour) TIME_FORMAT_24 else TIME_FORMAT_12
-            val dateTimeFormatter = if (is24Hour) DATE_TIME_FORMAT_24 else DATE_TIME_FORMAT_12
+            val timeFormatter = if (is24Hour) getTimeFormat24() else getTimeFormat12()
+            val dateTimeFormatter = if (is24Hour) getDateTimeFormat24() else getDateTimeFormat12()
+            val dateFormatShort = getDateFormatShort()
 
             var bestTodayTimed: CalendarEventModel? = null
             var bestTodayAllDay: CalendarEventModel? = null
@@ -391,7 +392,7 @@ class CalendarRepository(private val context: Context) {
                                 startTimeMillis = event.begin,
                                 endTimeMillis = event.end,
                                 timeDisplay = "All Day",
-                                relativeDisplay = if (daysUntil <= 6) allDayStartDate.format(DATE_FORMAT_SHORT) else "in ${daysUntil}d"
+                                relativeDisplay = if (daysUntil <= 6) allDayStartDate.format(dateFormatShort) else "in ${daysUntil}d"
                             )
                         }
                     }

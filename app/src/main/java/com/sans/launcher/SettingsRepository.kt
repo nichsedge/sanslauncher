@@ -93,7 +93,7 @@ class SettingsRepository(private val context: Context) {
             val current = preferences[favoritesKey] ?: emptySet()
             val isFav = key in current || (legacyKey != null && legacyKey in current)
             if (isFav) {
-                preferences[favoritesKey] = (current - key) - (legacyKey ?: "")
+                preferences[favoritesKey] = if (legacyKey != null) (current - key) - legacyKey else current - key
             } else {
                 preferences[favoritesKey] = current + key
             }
@@ -105,7 +105,7 @@ class SettingsRepository(private val context: Context) {
             val current = preferences[hiddenKey] ?: emptySet()
             val isHidden = key in current || (legacyKey != null && legacyKey in current)
             if (isHidden) {
-                preferences[hiddenKey] = (current - key) - (legacyKey ?: "")
+                preferences[hiddenKey] = if (legacyKey != null) (current - key) - legacyKey else current - key
             } else {
                 preferences[hiddenKey] = current + key
             }
@@ -160,29 +160,31 @@ class SettingsRepository(private val context: Context) {
         }
     }
 
-    internal fun decodeLabels(raw: String): Map<String, String> {
-        if (raw.isBlank()) return emptyMap()
-        return try {
-            val json = JSONObject(raw)
-            val map = mutableMapOf<String, String>()
-            val keys = json.keys()
-            while (keys.hasNext()) {
-                val key = keys.next()
-                map[key] = json.getString(key)
+    companion object {
+        internal fun decodeLabels(raw: String): Map<String, String> {
+            if (raw.isBlank()) return emptyMap()
+            return try {
+                val json = JSONObject(raw)
+                val map = mutableMapOf<String, String>()
+                val keys = json.keys()
+                while (keys.hasNext()) {
+                    val key = keys.next()
+                    map[key] = json.getString(key)
+                }
+                map
+            } catch (_: Exception) {
+                // Fallback for legacy delimiter format
+                raw.split(";;;").mapNotNull { entry ->
+                    val parts = entry.split(":::", limit = 2)
+                    if (parts.size == 2) parts[0] to parts[1] else null
+                }.toMap()
             }
-            map
-        } catch (_: Exception) {
-            // Fallback for legacy delimiter format
-            raw.split(";;;").mapNotNull { entry ->
-                val parts = entry.split(":::", limit = 2)
-                if (parts.size == 2) parts[0] to parts[1] else null
-            }.toMap()
         }
-    }
 
-    internal fun encodeLabels(map: Map<String, String>): String {
-        val json = JSONObject()
-        map.forEach { (k, v) -> json.put(k, v) }
-        return json.toString()
+        internal fun encodeLabels(map: Map<String, String>): String {
+            val json = JSONObject()
+            map.forEach { (k, v) -> json.put(k, v) }
+            return json.toString()
+        }
     }
 }

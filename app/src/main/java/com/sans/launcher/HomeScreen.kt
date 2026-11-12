@@ -301,7 +301,8 @@ fun HomeScreen(
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .focusRequester(focusRequester),
+                .focusRequester(focusRequester)
+                .semantics { contentDescription = "Search apps" },
             textStyle = MaterialTheme.typography.bodyLarge,
             colors = TextFieldDefaults.colors(
                 focusedContainerColor = Color.Transparent,
@@ -316,7 +317,7 @@ fun HomeScreen(
                 onGo = {
                     val firstApp = uiState.otherApps.firstOrNull() ?: uiState.favoriteApps.firstOrNull()
                     if (firstApp != null) {
-                        if (enableHaptics) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        if (enableHaptics) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         viewModel.launchApp(firstApp)
                         focusManager.clearFocus()
                     }
@@ -327,7 +328,7 @@ fun HomeScreen(
                     if (uiState.showCircleToSearchShortcut) {
                         IconButton(
                             onClick = {
-                                if (enableHaptics) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                if (enableHaptics) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 viewModel.triggerCircleToSearch(context)
                                 focusManager.clearFocus()
                             }
@@ -342,7 +343,7 @@ fun HomeScreen(
                     if (uiState.showExpenseShortcut) {
                         IconButton(
                             onClick = {
-                                if (enableHaptics) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                if (enableHaptics) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 viewModel.recordExpense(textFieldValue.text)
                                 focusManager.clearFocus()
                             }
@@ -428,12 +429,14 @@ private fun TimeAnchorHeader(
                 Text(
                     text = timeState.timeFormatted,
                     style = MaterialTheme.typography.displayLarge,
-                    color = MaterialTheme.colorScheme.onBackground
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.semantics { contentDescription = "Current time ${timeState.timeFormatted}" }
                 )
                 Text(
                     text = timeState.dateFormatted,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.secondary
+                    color = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.semantics { contentDescription = "Current date ${timeState.dateFormatted}" }
                 )
             }
         }
@@ -445,7 +448,10 @@ private fun TimeAnchorHeader(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { onEventClick(event?.startTimeMillis) }
+                    .clickable(
+                        onClickLabel = "Open calendar event",
+                        onClick = { onEventClick(event?.startTimeMillis) }
+                    )
                     .padding(vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -502,7 +508,7 @@ private fun AppItem(
             .defaultMinSize(minHeight = 48.dp)
             .combinedClickable(
                 onClick = {
-                    if (enableHaptics) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    if (enableHaptics) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     onLaunchApp(app)
                 },
                 onLongClick = {
@@ -535,6 +541,13 @@ private fun AppItem(
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = "CLONE",
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.65f)
+            )
+        } else if (app.isPrivateProfile) {
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "PRIVATE",
                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.65f)
             )
@@ -598,6 +611,13 @@ private fun AppContextBottomSheet(
             } else if (app.isCloneProfile) {
                 Text(
                     text = "Dual / Cloned App",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.secondary,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp)
+                )
+            } else if (app.isPrivateProfile) {
+                Text(
+                    text = "Private Space",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.secondary,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp)

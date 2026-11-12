@@ -50,6 +50,7 @@ HSPLcom/sans/launcher/TimeAnchorHelper;->timeStateFlow(Landroid/content/Context;
 
 Lcom/sans/launcher/TimeState;
 Lcom/sans/launcher/CalendarEventModel;
+Lcom/sans/launcher/CalendarInstanceData;
 
 Lcom/sans/launcher/AppModel;
 HSPLcom/sans/launcher/AppModel;-><init>(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ZZLandroid/os/UserHandle;Ljava/lang/String;Lcom/sans/launcher/ProfileType;)V

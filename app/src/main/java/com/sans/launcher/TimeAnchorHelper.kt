@@ -23,19 +23,19 @@ data class TimeState(
 
 object TimeAnchorHelper {
 
-    private val timeFormatter24 = DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault())
-    private val timeFormatter12 = DateTimeFormatter.ofPattern("h:mm a", Locale.getDefault())
-    private val dateFormatter = DateTimeFormatter.ofPattern("EEEE, MMM d", Locale.getDefault())
+    private fun getTimeFormatter24() = DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault())
+    private fun getTimeFormatter12() = DateTimeFormatter.ofPattern("h:mm a", Locale.getDefault())
+    private fun getDateFormatter() = DateTimeFormatter.ofPattern("EEEE, MMM d", Locale.getDefault())
 
     fun calculateTimeState(
         now: LocalDateTime = LocalDateTime.now(),
         is24Hour: Boolean = true
     ): TimeState {
-        val formatter = if (is24Hour) timeFormatter24 else timeFormatter12
+        val formatter = if (is24Hour) getTimeFormatter24() else getTimeFormatter12()
 
         return TimeState(
             timeFormatted = now.format(formatter),
-            dateFormatted = now.format(dateFormatter)
+            dateFormatted = now.format(getDateFormatter())
         )
     }
 
